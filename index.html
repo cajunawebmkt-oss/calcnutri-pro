@@ -1,0 +1,1625 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CalcNutri">
+  <meta name="theme-color" content="#2d6a4f">
+  <link rel="manifest" href="manifest.json">
+  <title>CalcNutri Pro — Calculadora de Calorias</title>
+  <style>
+    :root {
+      --g1:#1b4332; --g2:#2d6a4f; --g3:#40916c; --g4:#52b788; --g5:#74c69d;
+      --g6:#95d5b2; --g7:#b7e4c7; --g8:#d8f3dc; --g9:#f0faf2;
+      --radius:16px;
+      --shadow:0 4px 24px rgba(27,67,50,.13);
+      --tr:.28s cubic-bezier(.4,0,.2,1);
+    }
+    *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+    html { scroll-behavior:smooth; }
+    body {
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+      background:var(--g9); min-height:100vh; color:#1a2e23;
+      padding-bottom:calc(env(safe-area-inset-bottom,0px) + 20px);
+    }
+
+    /* ── LOADER ─────────────────────────────────────────── */
+    #loaderOverlay {
+      position:fixed; inset:0; z-index:9999;
+      background:rgba(27,67,50,.55);
+      backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:24px; opacity:0; pointer-events:none;
+      transition:opacity .3s ease;
+    }
+    #loaderOverlay.active { opacity:1; pointer-events:all; }
+    .ld-spinner {
+      width:52px; height:52px; border-radius:50%;
+      border:4px solid rgba(255,255,255,.2);
+      border-top-color:#fff;
+      animation:spin .85s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .ld-msg {
+      color:#fff; font-size:1.05rem; font-weight:600;
+      letter-spacing:.01em; text-align:center; padding:0 32px;
+    }
+
+    /* ── PWA BANNER ─────────────────────────────────────── */
+    #pwaBanner {
+      display:none;
+      background:linear-gradient(135deg,var(--g1),var(--g2));
+      color:#fff; padding:12px 20px; align-items:center; gap:12px;
+      position:sticky; top:0; z-index:500;
+    }
+    #pwaBanner.visible { display:flex; }
+
+    /* ── HEADER ─────────────────────────────────────────── */
+    .app-header {
+      background:linear-gradient(135deg,var(--g1) 0%,var(--g2) 55%,var(--g3) 100%);
+      color:#fff;
+      padding:calc(28px + env(safe-area-inset-top,0px)) 24px 22px;
+      text-align:center; position:relative; overflow:hidden;
+    }
+    .app-header::before {
+      content:''; position:absolute; inset:0;
+      background:radial-gradient(ellipse at 70% 30%,rgba(82,183,136,.22),transparent 65%);
+      pointer-events:none;
+    }
+    .app-header h1 {
+      font-size:1.7rem; font-weight:900; letter-spacing:-.03em; position:relative;
+    }
+    .app-header p { font-size:.88rem; opacity:.8; margin-top:5px; position:relative; }
+
+    /* ── PROGRESS STEPS ─────────────────────────────────── */
+    .steps-wrap {
+      background:#fff; padding:18px 16px 14px;
+      box-shadow:0 2px 14px rgba(27,67,50,.09);
+      position:sticky; top:0; z-index:100;
+    }
+    .steps { display:flex; align-items:flex-start; justify-content:center; }
+    .step-item {
+      display:flex; flex-direction:column; align-items:center;
+      gap:6px; flex:1; position:relative;
+    }
+    .step-item:not(:last-child)::after {
+      content:''; position:absolute; top:20px;
+      left:calc(50% + 22px); right:calc(-50% + 22px);
+      height:2px; background:var(--g7); z-index:0;
+      transition:background var(--tr);
+    }
+    .step-item.done:not(:last-child)::after { background:var(--g4); }
+    .step-dot {
+      width:40px; height:40px; border-radius:13px;
+      display:flex; align-items:center; justify-content:center;
+      position:relative; z-index:1;
+      transition:all var(--tr); background:var(--g8);
+      flex-shrink:0;
+    }
+    .step-dot svg { width:20px; height:20px; fill:var(--g5); transition:fill var(--tr); }
+    .step-item.active .step-dot {
+      background:linear-gradient(135deg,var(--g3),var(--g2));
+      box-shadow:0 0 0 4px rgba(64,145,108,.2),0 4px 14px rgba(27,67,50,.22);
+    }
+    .step-item.active .step-dot svg { fill:#fff; }
+    .step-item.done .step-dot { background:var(--g4); }
+    .step-item.done .step-dot svg { fill:#fff; }
+    .step-label {
+      font-size:.63rem; font-weight:600; color:var(--g5);
+      text-align:center; max-width:64px; line-height:1.2;
+    }
+    .step-item.active .step-label { color:var(--g2); font-weight:700; }
+    .step-item.done .step-label { color:var(--g3); }
+
+    /* ── WIZARD ─────────────────────────────────────────── */
+    .wizard { max-width:540px; margin:0 auto; padding:20px 16px; }
+    .page { display:none; animation:fadeUp .35s ease both; }
+    .page.active { display:block; }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(18px); }
+      to   { opacity:1; transform:none; }
+    }
+
+    /* ── CARD ───────────────────────────────────────────── */
+    .card {
+      background:#fff; border-radius:var(--radius);
+      padding:24px; margin-bottom:16px; box-shadow:var(--shadow);
+    }
+    .card-title {
+      font-size:1.05rem; font-weight:700; color:var(--g1);
+      margin-bottom:18px; display:flex; align-items:center; gap:9px;
+    }
+    .card-title svg { width:22px; height:22px; fill:var(--g3); flex-shrink:0; }
+
+    /* ── FORM ───────────────────────────────────────────── */
+    label { display:block; font-size:.82rem; font-weight:600; color:var(--g2); margin-bottom:6px; }
+    input[type=number],input[type=text],select {
+      width:100%; padding:12px 14px; border:2px solid var(--g7); border-radius:10px;
+      font-size:.95rem; color:#1a2e23; background:#fff;
+      transition:border-color var(--tr),box-shadow var(--tr);
+      -webkit-appearance:none; appearance:none;
+    }
+    input:focus,select:focus {
+      outline:none; border-color:var(--g4);
+      box-shadow:0 0 0 3px rgba(82,183,136,.18);
+    }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px; }
+    .form-group { margin-bottom:16px; }
+
+    /* ── OPTION CARDS ───────────────────────────────────── */
+    .opt-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .opt-grid.single { grid-template-columns:1fr; }
+    .opt-label {
+      display:flex; align-items:center; gap:10px;
+      padding:13px 14px; border:2px solid var(--g7); border-radius:12px;
+      cursor:pointer; transition:all var(--tr); background:#fff;
+    }
+    .opt-label:hover { border-color:var(--g5); background:var(--g9); }
+    .opt-label input { display:none; }
+    .opt-label.selected { border-color:var(--g3); background:var(--g8); }
+    .opt-icon { font-size:1.4rem; line-height:1; flex-shrink:0; }
+    .opt-text { flex:1; }
+    .opt-text strong { display:block; font-size:.88rem; color:var(--g1); }
+    .opt-text span { font-size:.74rem; color:var(--g3); }
+
+    /* ── BUTTONS ────────────────────────────────────────── */
+    .btn {
+      display:inline-flex; align-items:center; justify-content:center; gap:8px;
+      padding:14px 26px; border-radius:12px; border:none; cursor:pointer;
+      font-size:.95rem; font-weight:700; transition:all var(--tr);
+    }
+    .btn-primary {
+      background:linear-gradient(135deg,var(--g3),var(--g2)); color:#fff;
+      box-shadow:0 4px 16px rgba(64,145,108,.32); width:100%;
+    }
+    .btn-primary:hover { transform:translateY(-1px); box-shadow:0 6px 22px rgba(64,145,108,.42); }
+    .btn-primary:active { transform:none; }
+    .btn-secondary {
+      background:var(--g8); color:var(--g2); border:2px solid var(--g6);
+      font-size:.85rem; padding:10px 18px; border-radius:10px;
+    }
+    .btn-secondary:hover { background:var(--g7); border-color:var(--g4); }
+    .btn-ghost {
+      background:none; border:2px solid var(--g6); color:var(--g2);
+      font-size:.85rem; padding:10px 18px; border-radius:10px;
+    }
+    .btn-ghost:hover { background:var(--g9); }
+    .btn-danger {
+      background:#fee2e2; color:#991b1b; border:2px solid #fca5a5;
+      font-size:.82rem; padding:9px 16px; border-radius:9px;
+    }
+    .btn-danger:hover { background:#fecaca; }
+    .nav-btns { display:flex; gap:10px; margin-top:10px; }
+    .nav-btns .btn-primary { flex:1; }
+
+    /* ── RESULT HERO ────────────────────────────────────── */
+    .result-hero {
+      background:linear-gradient(135deg,var(--g1),var(--g2),var(--g3));
+      border-radius:var(--radius); padding:28px 24px; color:#fff;
+      text-align:center; margin-bottom:16px;
+      box-shadow:0 8px 32px rgba(27,67,50,.28);
+    }
+    .kcal-big { font-size:3.2rem; font-weight:900; line-height:1; letter-spacing:-.04em; }
+    .kcal-lbl { font-size:.88rem; opacity:.82; margin-top:4px; }
+    .kcal-meta { font-size:.78rem; opacity:.65; margin-top:8px; }
+    .macro-grid {
+      display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:18px;
+    }
+    .macro-card {
+      background:rgba(255,255,255,.12); border-radius:10px; padding:12px; text-align:center;
+    }
+    .macro-card .mv { font-size:1.45rem; font-weight:800; }
+    .macro-card .ml { font-size:.7rem; opacity:.8; margin-top:2px; }
+
+    /* ── TABS ───────────────────────────────────────────── */
+    .tabs-header {
+      display:flex; gap:4px; background:var(--g8); padding:6px;
+      border-radius:14px; margin-bottom:16px;
+    }
+    .tab-btn {
+      flex:1; padding:10px 8px; border-radius:10px; border:none; cursor:pointer;
+      font-size:.82rem; font-weight:600; color:var(--g3); background:transparent;
+      transition:all var(--tr);
+    }
+    .tab-btn.active {
+      background:#fff; color:var(--g1); box-shadow:0 2px 8px rgba(27,67,50,.12);
+    }
+    .tab-panel { display:none; }
+    .tab-panel.active { display:block; }
+
+    /* ── STATS GRID ─────────────────────────────────────── */
+    .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px; }
+    .stat-card {
+      background:#fff; border-radius:12px; padding:16px;
+      border-left:4px solid var(--g4); box-shadow:0 2px 10px rgba(27,67,50,.08);
+    }
+    .stat-card .sv { font-size:1.35rem; font-weight:800; color:var(--g1); }
+    .stat-card .sl { font-size:.72rem; color:var(--g3); margin-top:3px; }
+    .imc-badge {
+      display:inline-block; padding:3px 10px; border-radius:20px;
+      font-size:.75rem; font-weight:700;
+    }
+
+    /* ── TIP BOX ────────────────────────────────────────── */
+    .tip-box {
+      background:linear-gradient(135deg,var(--g8),#fff);
+      border:1px solid var(--g6); border-radius:12px;
+      padding:14px 16px; margin-bottom:16px;
+      font-size:.84rem; color:var(--g1); line-height:1.55;
+    }
+    .tip-box strong { color:var(--g2); }
+
+    /* ── SIMPLE MEALS ───────────────────────────────────── */
+    .simple-meal {
+      display:flex; align-items:center; gap:10px; padding:12px 14px;
+      border-radius:10px; background:var(--g9); margin-bottom:8px;
+    }
+    .sm-icon { font-size:1.3rem; }
+    .sm-info { flex:1; }
+    .sm-name { font-size:.85rem; font-weight:700; color:var(--g1); }
+    .sm-kcal { font-size:.74rem; color:var(--g3); }
+    .sm-bar { margin-top:5px; background:var(--g7); border-radius:4px; height:5px; overflow:hidden; }
+    .sm-fill { height:100%; background:linear-gradient(90deg,var(--g4),var(--g3)); border-radius:4px; }
+
+    /* ── DAY NAV ────────────────────────────────────────── */
+    .day-nav {
+      display:flex; gap:6px; overflow-x:auto; padding:2px 0 8px;
+      scrollbar-width:none; margin-bottom:16px;
+    }
+    .day-nav::-webkit-scrollbar { display:none; }
+    .day-btn {
+      flex-shrink:0; padding:8px 16px; border-radius:20px; border:none; cursor:pointer;
+      font-size:.8rem; font-weight:700; background:var(--g8); color:var(--g3);
+      transition:all var(--tr); white-space:nowrap;
+    }
+    .day-btn.active {
+      background:linear-gradient(135deg,var(--g3),var(--g2)); color:#fff;
+      box-shadow:0 3px 10px rgba(64,145,108,.32);
+    }
+
+    /* ── MEAL CARD ──────────────────────────────────────── */
+    .meal-card {
+      background:#fff; border-radius:var(--radius); padding:18px;
+      margin-bottom:14px; box-shadow:var(--shadow); border-top:3px solid var(--g4);
+    }
+    .meal-header {
+      display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;
+    }
+    .meal-title { font-size:.95rem; font-weight:700; color:var(--g1); }
+    .meal-kcal {
+      font-size:.75rem; font-weight:700; color:var(--g3);
+      background:var(--g8); padding:4px 10px; border-radius:20px; white-space:nowrap;
+    }
+    .chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+    .chip {
+      padding:6px 11px; border-radius:20px; border:none; cursor:pointer;
+      font-size:.74rem; font-weight:600; background:var(--g8); color:var(--g2);
+      transition:all var(--tr); line-height:1.3;
+    }
+    .chip:hover { background:var(--g7); transform:translateY(-1px); }
+    .chip.added { background:var(--g4); color:#fff; }
+    .food-log { display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 4px; }
+    .food-tag {
+      display:flex; align-items:center; gap:5px; padding:5px 10px;
+      background:var(--g8); border-radius:20px; font-size:.74rem; color:var(--g1);
+    }
+    .food-tag button {
+      background:none; border:none; cursor:pointer; color:var(--g4);
+      font-size:.9rem; line-height:1; padding:0;
+    }
+    .food-tag button:hover { color:#991b1b; }
+    .more-btn {
+      width:100%; padding:9px; border-radius:10px;
+      border:2px dashed var(--g6); background:transparent;
+      color:var(--g3); font-size:.8rem; font-weight:600;
+      cursor:pointer; transition:all var(--tr); margin-top:6px;
+    }
+    .more-btn:hover { background:var(--g9); border-color:var(--g4); color:var(--g2); }
+    .daily-total {
+      background:linear-gradient(135deg,var(--g8),#fff);
+      border:2px solid var(--g6); border-radius:var(--radius);
+      padding:18px; margin:16px 0; text-align:center;
+    }
+    .dt-val { font-size:2.2rem; font-weight:900; color:var(--g1); }
+    .dt-lbl { font-size:.8rem; color:var(--g3); margin-top:2px; }
+    .daily-actions { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+
+    /* ── BOTTOM SHEET ───────────────────────────────────── */
+    #bsBackdrop {
+      position:fixed; inset:0; background:rgba(0,0,0,.48);
+      z-index:1000; opacity:0; pointer-events:none;
+      transition:opacity .3s ease;
+    }
+    #bsBackdrop.open { opacity:1; pointer-events:all; }
+    #bottomSheet {
+      position:fixed; bottom:-100%; left:0; right:0; z-index:1001;
+      background:#fff; border-radius:24px 24px 0 0;
+      padding-bottom:env(safe-area-inset-bottom,20px);
+      transition:bottom .45s cubic-bezier(.25,.8,.25,1);
+      max-height:88vh; display:flex; flex-direction:column;
+      box-shadow:0 -8px 40px rgba(27,67,50,.22);
+    }
+    #bottomSheet.open { bottom:0; }
+    .bs-handle {
+      width:40px; height:4px; background:var(--g6);
+      border-radius:2px; margin:12px auto 0; flex-shrink:0;
+    }
+    .bs-header {
+      padding:12px 20px 0; border-bottom:1px solid var(--g8); flex-shrink:0;
+    }
+    .bs-title { font-size:1rem; font-weight:700; color:var(--g1); margin-bottom:10px; }
+    .bs-search {
+      width:100%; padding:10px 14px; border:2px solid var(--g7);
+      border-radius:10px; font-size:.9rem; margin-bottom:10px;
+    }
+    .bs-search:focus { outline:none; border-color:var(--g4); }
+    .bs-list {
+      flex:1; overflow-y:auto; padding:12px 20px;
+      display:flex; flex-wrap:wrap; gap:8px; align-content:flex-start;
+    }
+    .bs-item {
+      display:flex; align-items:center; gap:8px; padding:8px 14px;
+      border:2px solid var(--g7); border-radius:10px; cursor:pointer;
+      transition:all var(--tr); font-size:.82rem; color:var(--g1);
+      background:#fff; width:100%; max-width:calc(50% - 4px);
+    }
+    @media(max-width:480px) { .bs-item { max-width:100%; } }
+    .bs-item.checked { border-color:var(--g3); background:var(--g8); }
+    .bs-item input[type=checkbox] { width:16px; height:16px; accent-color:var(--g3); flex-shrink:0; }
+    .bs-item .bs-kcal { margin-left:auto; color:var(--g3); font-size:.75rem; white-space:nowrap; }
+    .bs-footer { padding:14px 20px; border-top:1px solid var(--g8); flex-shrink:0; }
+    .bs-add-btn {
+      width:100%; padding:14px; border:none; border-radius:12px; cursor:pointer;
+      background:linear-gradient(135deg,var(--g3),var(--g2)); color:#fff;
+      font-size:.95rem; font-weight:700;
+      box-shadow:0 4px 14px rgba(64,145,108,.28);
+      transition:all var(--tr);
+    }
+    .bs-add-btn:hover { transform:translateY(-1px); }
+    .bs-add-btn:disabled { opacity:.5; cursor:default; transform:none; }
+
+    /* ── EXERCISE CARDS ─────────────────────────────────── */
+    .ex-card {
+      background:#fff; border-radius:12px; padding:14px 16px;
+      margin-bottom:10px; box-shadow:0 2px 10px rgba(27,67,50,.07);
+      display:flex; align-items:center; gap:12px;
+      border-left:3px solid var(--g4);
+    }
+    .ex-ico { font-size:1.5rem; line-height:1; flex-shrink:0; }
+    .ex-info { flex:1; }
+    .ex-name { font-size:.9rem; font-weight:700; color:var(--g1); }
+    .ex-meta { font-size:.75rem; color:var(--g3); margin-top:2px; }
+    .ex-remove {
+      background:none; border:none; cursor:pointer; color:var(--g5);
+      font-size:1.25rem; padding:4px 6px; border-radius:6px;
+      transition:all var(--tr); line-height:1;
+    }
+    .ex-remove:hover { background:#fee2e2; color:#991b1b; }
+    .ex-day-total {
+      background:var(--g8); border-radius:10px; padding:12px 16px;
+      font-size:.9rem; font-weight:700; color:var(--g1);
+      margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;
+    }
+    .ex-lib-section { margin-top:22px; }
+    .ex-cat-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 16px; background:var(--g8); border-radius:10px;
+      cursor:pointer; margin-bottom:6px; user-select:none;
+      transition:background var(--tr);
+    }
+    .ex-cat-header:hover { background:var(--g7); }
+    .cat-left { display:flex; align-items:center; gap:8px; font-weight:700; font-size:.9rem; color:var(--g1); }
+    .cat-arrow { font-size:.75rem; color:var(--g3); transition:transform var(--tr); }
+    .ex-cat-header.open .cat-arrow { transform:rotate(180deg); }
+    .ex-cat-items { display:none; flex-wrap:wrap; gap:7px; padding:4px 0 12px; }
+    .ex-cat-items.open { display:flex; }
+    .ex-chip {
+      padding:8px 14px; border-radius:20px; border:none; cursor:pointer;
+      font-size:.77rem; font-weight:600; background:var(--g8); color:var(--g1);
+      transition:all var(--tr); display:flex; flex-direction:column;
+      align-items:center; gap:2px; text-align:center;
+    }
+    .ex-chip:hover { background:var(--g4); color:#fff; transform:translateY(-1px); }
+    .ec-dur { font-size:.67rem; opacity:.7; }
+    .custom-ex-form {
+      background:#fff; border-radius:var(--radius); padding:20px;
+      margin-top:20px; box-shadow:var(--shadow);
+    }
+    .custom-ex-form h3 { font-size:.95rem; font-weight:700; color:var(--g1); margin-bottom:16px; }
+
+    /* ── SECTION TITLE ──────────────────────────────────── */
+    .section-title {
+      font-size:.8rem; font-weight:700; color:var(--g3);
+      text-transform:uppercase; letter-spacing:.06em; margin:16px 0 8px;
+    }
+    .empty-state { text-align:center; padding:28px 16px; color:var(--g5); font-size:.85rem; line-height:1.55; }
+
+    /* ── PRINT ──────────────────────────────────────────── */
+    @media print {
+      body { background:#fff; }
+      .steps-wrap,#pwaBanner,.tabs-header,.day-nav,.daily-actions,
+      .more-btn,.nav-btns,.app-header,#bsBackdrop,#bottomSheet,
+      .ex-lib-section,.custom-ex-form,.btn,.chips { display:none !important; }
+      .food-tag button { display:none !important; }
+      .card,.meal-card,.ex-card { box-shadow:none; border:1px solid #ddd; }
+      .tab-panel { display:block !important; }
+      .page { display:none !important; }
+      #page4.active { display:block !important; }
+    }
+
+    @media(max-width:420px) {
+      .form-row { grid-template-columns:1fr; }
+      .opt-grid { grid-template-columns:1fr; }
+      .stats-grid { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- PWA Banner -->
+<div id="pwaBanner">
+  <span style="flex:1;font-size:.88rem;font-weight:700;">Instale o app no seu celular!</span>
+  <button id="pwaInstallBtn" style="padding:8px 16px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);border-radius:8px;color:#fff;font-weight:800;cursor:pointer;font-size:.8rem;">Instalar</button>
+  <button onclick="document.getElementById('pwaBanner').classList.remove('visible')" style="background:none;border:none;color:rgba(255,255,255,.6);cursor:pointer;font-size:1.3rem;line-height:1;">&#215;</button>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loaderOverlay">
+  <div class="ld-spinner"></div>
+  <div class="ld-msg" id="loaderMsg">Processando seus dados…</div>
+</div>
+
+<!-- Header -->
+<header class="app-header">
+  <h1>CalcNutri Pro</h1>
+  <p>Plano alimentar e de exercícios personalizado</p>
+</header>
+
+<!-- Progress Steps -->
+<div class="steps-wrap">
+  <div class="steps">
+
+    <div class="step-item active" id="si1">
+      <div class="step-dot">
+        <!-- person/silhouette -->
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+        </svg>
+      </div>
+      <span class="step-label">Dados</span>
+    </div>
+
+    <div class="step-item" id="si2">
+      <div class="step-dot">
+        <!-- running figure -->
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7z"/>
+        </svg>
+      </div>
+      <span class="step-label">Atividade</span>
+    </div>
+
+    <div class="step-item" id="si3">
+      <div class="step-dot">
+        <!-- target/bullseye -->
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-12.5c-2.49 0-4.5 2.01-4.5 4.5s2.01 4.5 4.5 4.5 4.5-2.01 4.5-4.5-2.01-4.5-4.5-4.5zm0 5.5c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
+        </svg>
+      </div>
+      <span class="step-label">Meta</span>
+    </div>
+
+    <div class="step-item" id="si4">
+      <div class="step-dot">
+        <!-- checkmark -->
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+        </svg>
+      </div>
+      <span class="step-label">Resultado</span>
+    </div>
+
+  </div>
+</div>
+
+<div class="wizard">
+
+  <!-- ── STEP 1 ─────────────────────────────────────────── -->
+  <div class="page active" id="page1">
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+        Seus dados pessoais
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="idade">Idade (anos)</label>
+          <input type="number" id="idade" min="10" max="100" placeholder="Ex: 30">
+        </div>
+        <div class="form-group">
+          <label for="peso">Peso (kg)</label>
+          <input type="number" id="peso" min="30" max="300" step="0.1" placeholder="Ex: 75">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="altura">Altura (cm)</label>
+          <input type="number" id="altura" min="100" max="250" placeholder="Ex: 175">
+        </div>
+        <div class="form-group">
+          <label>Sexo biológico</label>
+          <div style="display:flex;gap:8px;margin-top:4px;">
+            <label class="opt-label selected" style="flex:1;padding:10px 12px;">
+              <input type="radio" name="sexo" value="m" checked>
+              <span class="opt-icon">&#9794;</span>
+              <span class="opt-text"><strong>Masculino</strong></span>
+            </label>
+            <label class="opt-label" style="flex:1;padding:10px 12px;">
+              <input type="radio" name="sexo" value="f">
+              <span class="opt-icon">&#9792;</span>
+              <span class="opt-text"><strong>Feminino</strong></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-btns">
+        <button class="btn btn-primary" onclick="goStep(2)">Próximo — Nível de Atividade</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 2 ─────────────────────────────────────────── -->
+  <div class="page" id="page2">
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24"><path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7z"/></svg>
+        Nível de atividade física
+      </div>
+
+      <div class="opt-grid single">
+        <label class="opt-label selected">
+          <input type="radio" name="ativ" value="1.2" checked>
+          <span class="opt-icon">&#x1F6CB;</span>
+          <span class="opt-text"><strong>Sedentário</strong><span>Sem exercícios, trabalho de escritório</span></span>
+        </label>
+        <label class="opt-label">
+          <input type="radio" name="ativ" value="1.375">
+          <span class="opt-icon">&#x1F6B6;</span>
+          <span class="opt-text"><strong>Levemente ativo</strong><span>1–3 dias por semana de exercício</span></span>
+        </label>
+        <label class="opt-label">
+          <input type="radio" name="ativ" value="1.55">
+          <span class="opt-icon">&#x1F3C3;</span>
+          <span class="opt-text"><strong>Moderadamente ativo</strong><span>3–5 dias por semana de exercício</span></span>
+        </label>
+        <label class="opt-label">
+          <input type="radio" name="ativ" value="1.725">
+          <span class="opt-icon">&#x1F4AA;</span>
+          <span class="opt-text"><strong>Muito ativo</strong><span>6–7 dias por semana de exercício intenso</span></span>
+        </label>
+        <label class="opt-label">
+          <input type="radio" name="ativ" value="1.9">
+          <span class="opt-icon">&#x1F3C6;</span>
+          <span class="opt-text"><strong>Extremamente ativo</strong><span>Atleta profissional ou trabalho físico pesado</span></span>
+        </label>
+      </div>
+
+      <div class="nav-btns">
+        <button class="btn btn-secondary" onclick="goStep(1)">&larr; Voltar</button>
+        <button class="btn btn-primary" onclick="goStep(3)">Próximo — Definir Meta</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 3 ─────────────────────────────────────────── -->
+  <div class="page" id="page3">
+    <div class="card">
+      <div class="card-title">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-12.5c-2.49 0-4.5 2.01-4.5 4.5s2.01 4.5 4.5 4.5 4.5-2.01 4.5-4.5-2.01-4.5-4.5-4.5zm0 5.5c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>
+        Qual é o seu objetivo?
+      </div>
+
+      <div class="opt-grid single">
+        <label class="opt-label selected">
+          <input type="radio" name="meta" value="perder" checked>
+          <span class="opt-icon">&#x1F4C9;</span>
+          <span class="opt-text"><strong>Perder peso</strong><span>Déficit calórico para emagrecimento saudável</span></span>
+        </label>
+        <label class="opt-label">
+          <input type="radio" name="meta" value="manter">
+          <span class="opt-icon">&#x2696;&#xFE0F;</span>
+          <span class="opt-text"><strong>Manter peso</strong><span>Equilíbrio calórico para manutenção</span></span>
+        </label>
+        <label class="opt-label">
+          <input type="radio" name="meta" value="ganhar">
+          <span class="opt-icon">&#x1F4C8;</span>
+          <span class="opt-text"><strong>Ganhar massa</strong><span>Superávit calórico para hipertrofia</span></span>
+        </label>
+      </div>
+
+      <div class="nav-btns">
+        <button class="btn btn-secondary" onclick="goStep(2)">&larr; Voltar</button>
+        <button class="btn btn-primary" onclick="calc()">Calcular Meu Plano</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEP 4: RESULTS ───────────────────────────────── -->
+  <div class="page" id="page4" style="max-width:700px;">
+
+    <!-- Hero -->
+    <div class="result-hero">
+      <div class="kcal-lbl">Meta diária de calorias</div>
+      <div class="kcal-big" id="heroKcal">—</div>
+      <div class="kcal-meta" id="heroMeta"></div>
+      <div class="macro-grid">
+        <div class="macro-card"><div class="mv" id="mProt">—</div><div class="ml">Proteína (g)</div></div>
+        <div class="macro-card"><div class="mv" id="mCarb">—</div><div class="ml">Carboidrato (g)</div></div>
+        <div class="macro-card"><div class="mv" id="mGord">—</div><div class="ml">Gordura (g)</div></div>
+      </div>
+    </div>
+
+    <!-- Tab headers -->
+    <div class="tabs-header">
+      <button class="tab-btn active" onclick="switchTab(0)">Resumo</button>
+      <button class="tab-btn" onclick="switchTab(1)">Refeições</button>
+      <button class="tab-btn" onclick="switchTab(2)">Exercícios</button>
+    </div>
+
+    <!-- TAB 0: Resumo -->
+    <div class="tab-panel active" id="tab0">
+      <div class="stats-grid" id="statsGrid"></div>
+      <div class="tip-box" id="tipBox"></div>
+      <div class="section-title">Distribuição de refeições sugerida</div>
+      <div id="simpleMeals"></div>
+      <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;">
+        <button class="btn btn-secondary" onclick="printPlan()">&#128424; Imprimir Plano</button>
+        <button class="btn btn-danger" onclick="resetApp()">&#128260; Recalcular</button>
+      </div>
+    </div>
+
+    <!-- TAB 1: Refeições -->
+    <div class="tab-panel" id="tab1">
+      <div class="day-nav" id="mealDayNav"></div>
+      <div class="daily-actions">
+        <button class="btn btn-secondary" onclick="copyPrevDay()" style="font-size:.8rem;padding:9px 14px;">&#128203; Copiar do dia anterior</button>
+        <button class="btn btn-ghost" onclick="clearCurDay()" style="font-size:.8rem;padding:9px 14px;">&#128465; Limpar dia</button>
+      </div>
+      <div id="mealPlannerWrap"></div>
+      <div class="daily-total">
+        <div class="dt-val" id="dailyTotalKcal">0</div>
+        <div class="dt-lbl">kcal registradas — <span id="dailyTotalDay">Seg</span></div>
+      </div>
+    </div>
+
+    <!-- TAB 2: Exercícios -->
+    <div class="tab-panel" id="tab2">
+      <div class="day-nav" id="exDayNav"></div>
+      <div class="ex-day-total">
+        <span>Queima estimada (<span id="exDayLbl">Seg</span>)</span>
+        <span id="exDayBurn">0 kcal</span>
+      </div>
+      <div id="exPlannedWrap"></div>
+      <div class="ex-lib-section">
+        <div class="section-title">Biblioteca de exercícios</div>
+        <div id="exLibWrap"></div>
+      </div>
+      <div class="custom-ex-form">
+        <h3>&#10133; Adicionar exercício personalizado</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nome do exercício</label>
+            <input type="text" id="cExName" placeholder="Ex: Natação livre">
+          </div>
+          <div class="form-group">
+            <label>Dia da semana</label>
+            <select id="cExDay"></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Duração</label>
+            <input type="text" id="cExDur" placeholder="Ex: 45 min">
+          </div>
+          <div class="form-group">
+            <label>Calorias estimadas</label>
+            <input type="number" id="cExBurn" placeholder="Ex: 300" min="0">
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="addCustomEx()">Adicionar Exercício</button>
+      </div>
+    </div>
+
+  </div><!-- /page4 -->
+
+</div><!-- /wizard -->
+
+<!-- Bottom Sheet Backdrop -->
+<div id="bsBackdrop" onclick="closeBS()"></div>
+
+<!-- Bottom Sheet -->
+<div id="bottomSheet">
+  <div class="bs-handle"></div>
+  <div class="bs-header">
+    <div class="bs-title" id="bsTitle">Selecionar alimentos</div>
+    <input class="bs-search" id="bsSearch" type="text" placeholder="&#128269; Buscar alimento…" oninput="filterBS()">
+  </div>
+  <div class="bs-list" id="bsList"></div>
+  <div class="bs-footer">
+    <button class="bs-add-btn" id="bsAddBtn" onclick="addFromBS()" disabled>Nenhum item selecionado</button>
+  </div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────────────────
+   DATA
+───────────────────────────────────────────────────────── */
+const DAYS = ['seg','ter','qua','qui','sex','sab','dom'];
+const DAY_LABELS = {seg:'Seg',ter:'Ter',qua:'Qua',qui:'Qui',sex:'Sex',sab:'Sáb',dom:'Dom'};
+const DAY_FULL   = {seg:'Segunda-feira',ter:'Terça-feira',qua:'Quarta-feira',qui:'Quinta-feira',sex:'Sexta-feira',sab:'Sábado',dom:'Domingo'};
+
+const MD = [
+  {k:'cafe',   label:'Café da Manhã',   icon:'☕', target:0.25},
+  {k:'lmanha', label:'Lanche da Manhã', icon:'🍎', target:0.10},
+  {k:'almoco', label:'Almoço',          icon:'🍽️', target:0.35},
+  {k:'ltarde', label:'Lanche da Tarde', icon:'🥜', target:0.10},
+  {k:'jantar', label:'Jantar',          icon:'🌙', target:0.15},
+  {k:'ceia',   label:'Ceia',            icon:'🥛', target:0.05},
+];
+
+const FD = {
+  cafe:[
+    ['Ovos mexidos (2 unid)',150],['Pão integral (1 fatia)',80],
+    ['Aveia cozida (40g)',148],['Iogurte grego (170g)',100],
+    ['Banana média',89],['Tapioca com ovo (80g)',160],
+    ['Queijo cottage (100g)',98],['Mamão (150g)',60],
+    ['Leite desnatado (200ml)',93],['Whey protein (30g)',120],
+    ['Panqueca de banana (2 unid)',180],['Toast com abacate',200],
+    ['Vitamina de frutas (300ml)',175],['Cuscuz (100g)',155],
+    ['Crepioca (2 unid)',170],['Pão de queijo (3 unid)',220],
+    ['Mingau de aveia (200ml)',165],['Iogurte com granola (150g)',185],
+  ],
+  lmanha:[
+    ['Maçã média',81],['Mix de castanhas (30g)',185],
+    ['Iogurte natural (120g)',72],['Banana média',89],
+    ['Cenoura baby (100g)',41],['Barra de proteína',200],
+    ['Uva (100g)',69],['Amendoim (30g)',176],
+    ['Laranja (1 unid)',62],['Pera (1 unid)',100],
+    ['Abacaxi (150g)',75],['Melão (150g)',52],
+    ['Biscoito integral (4 unid)',120],['Ovo cozido (1 unid)',78],
+    ['Banana com pasta de amendoim',230],['Smoothie verde (250ml)',120],
+  ],
+  almoco:[
+    ['Arroz integral cozido (100g)',130],['Feijão cozido (100g)',77],
+    ['Frango grelhado (150g)',248],['Carne bovina magra (150g)',283],
+    ['Salada verde (100g)',25],['Batata-doce cozida (150g)',135],
+    ['Brócolis cozido (100g)',34],['Salmão grelhado (150g)',277],
+    ['Ovo cozido (1 unid)',78],['Azeite de oliva (1 col.)',88],
+    ['Atum enlatado (100g)',132],['Lentilha cozida (100g)',116],
+    ['Quinoa cozida (100g)',120],['Couve-flor cozida (100g)',25],
+    ['Tofu grelhado (150g)',120],['Macarrão integral (100g)',150],
+    ['Peixe assado (150g)',185],['Purê de batata (150g)',170],
+    ['Frango ao molho (200g)',290],['Cenoura cozida (100g)',41],
+  ],
+  ltarde:[
+    ['Batata-doce assada (100g)',90],['Whey protein (30g)',120],
+    ['Maçã média',81],['Torrada integral (2 unid)',100],
+    ['Amendoim (30g)',176],['Iogurte grego (170g)',100],
+    ['Banana média',89],['Wrap integral (1 unid)',160],
+    ['Cottage com fruta (150g)',120],['Pipoca (30g)',110],
+    ['Biscoito integral (4 unid)',120],['Smoothie proteico (250ml)',180],
+    ['Tapioca (60g)',150],['Ovo mexido (1 unid)',78],
+    ['Mix de frutas secas (30g)',90],['Suco natural (200ml)',80],
+  ],
+  jantar:[
+    ['Filé de tilápia (150g)',165],['Frango grelhado (150g)',248],
+    ['Omelete (2 ovos)',150],['Macarrão integral (100g)',150],
+    ['Legumes grelhados (200g)',80],['Sopa de legumes (300ml)',120],
+    ['Carne bovina magra (100g)',188],['Salada mista (150g)',40],
+    ['Arroz integral (100g)',130],['Frango ao forno (150g)',230],
+    ['Atum grelhado (150g)',210],['Peixe assado (150g)',185],
+    ['Tofu grelhado (150g)',120],['Salmão assado (150g)',277],
+    ['Purê de couve-flor (150g)',75],['Strogonoff de frango (200g)',290],
+    ['Batata-doce (150g)',135],['Wrap de frango (1 unid)',280],
+    ['Caldo verde (300ml)',130],['Brócolis com grão-de-bico (200g)',180],
+  ],
+  ceia:[
+    ['Iogurte grego (170g)',100],['Queijo branco (50g)',150],
+    ['Leite semidesnatado (200ml)',93],['Castanha-do-pará (3 unid)',90],
+    ['Whey protein (30g)',120],['Banana média',89],
+    ['Queijo cottage (100g)',98],['Chá com mel (1 xíc.)',30],
+    ['Amendoim (30g)',176],['Kefir (200ml)',70],
+    ['Ricota (50g)',65],['Maçã média',81],
+  ],
+};
+
+const EX_LIB = [
+  {cat:'Cardio', ico:'🏃', items:[
+    {n:'Corrida leve',dur:'30 min',burn:250},
+    {n:'Corrida moderada',dur:'35 min',burn:350},
+    {n:'Corrida intensa',dur:'30 min',burn:450},
+    {n:'Caminhada rápida',dur:'45 min',burn:280},
+    {n:'Bicicleta outdoor',dur:'45 min',burn:380},
+    {n:'Bicicleta ergométrica',dur:'40 min',burn:320},
+    {n:'Natação',dur:'45 min',burn:420},
+    {n:'Elíptico',dur:'40 min',burn:350},
+    {n:'Pular corda',dur:'20 min',burn:280},
+    {n:'Remo ergométrico',dur:'30 min',burn:300},
+    {n:'Step aeróbico',dur:'40 min',burn:340},
+  ]},
+  {cat:'HIIT', ico:'⚡', items:[
+    {n:'HIIT clássico',dur:'25 min',burn:380},
+    {n:'Tabata',dur:'20 min',burn:300},
+    {n:'CrossFit',dur:'45 min',burn:450},
+    {n:'Circuito funcional',dur:'40 min',burn:380},
+    {n:'Burpees + saltos',dur:'20 min',burn:280},
+    {n:'Sprint intervals',dur:'25 min',burn:350},
+  ]},
+  {cat:'Musculação', ico:'🏋️', items:[
+    {n:'Peito + Tríceps',dur:'60 min',burn:350},
+    {n:'Costas + Bíceps',dur:'60 min',burn:350},
+    {n:'Pernas + Glúteos',dur:'65 min',burn:400},
+    {n:'Ombros + Core',dur:'55 min',burn:300},
+    {n:'Full Body',dur:'55 min',burn:350},
+    {n:'Abdômen + Core',dur:'30 min',burn:180},
+    {n:'Braços (bi+tri)',dur:'40 min',burn:220},
+    {n:'Glúteos focado',dur:'50 min',burn:280},
+  ]},
+  {cat:'Flexibilidade', ico:'🧘', items:[
+    {n:'Yoga flow',dur:'45 min',burn:180},
+    {n:'Pilates',dur:'45 min',burn:180},
+    {n:'Alongamento global',dur:'30 min',burn:100},
+    {n:'Mobilidade articular',dur:'25 min',burn:80},
+    {n:'Tai Chi',dur:'45 min',burn:150},
+  ]},
+  {cat:'Esportes', ico:'⚽', items:[
+    {n:'Futebol',dur:'60 min',burn:520},
+    {n:'Basquete',dur:'60 min',burn:460},
+    {n:'Tênis',dur:'60 min',burn:440},
+    {n:'Vôlei',dur:'60 min',burn:360},
+    {n:'Trilha',dur:'60 min',burn:380},
+    {n:'Dança',dur:'45 min',burn:280},
+    {n:'Surfe',dur:'60 min',burn:380},
+    {n:'Padel',dur:'60 min',burn:420},
+  ]},
+];
+
+/* ─────────────────────────────────────────────────────────
+   STATE
+───────────────────────────────────────────────────────── */
+let curStep   = 1;
+let resultData = {};
+let targetKcal = 0;
+let curDay    = 'seg';
+let curExDay  = 'seg';
+
+// Food log: log[day][mealKey] = [[name, kcal], ...]
+const log = {};
+DAYS.forEach(d => {
+  log[d] = {};
+  MD.forEach(m => { log[d][m.k] = []; });
+});
+
+// Exercise plan: exPlan[day] = [{n, dur, burn, ico}, ...]
+const exPlan = {};
+DAYS.forEach(d => { exPlan[d] = []; });
+
+// Bottom sheet state
+let currentBSMeal = null;
+let bsChecked = new Set();
+
+/* ─────────────────────────────────────────────────────────
+   LOADER
+───────────────────────────────────────────────────────── */
+const LOADER_MSGS = [
+  'Processando seus dados…',
+  'Analisando atividade…',
+  'Calculando seu plano…',
+  'Reiniciando…',
+];
+let _loaderIdx = 0;
+
+function showLoader(msg, cb) {
+  const el = document.getElementById('loaderOverlay');
+  const msgEl = document.getElementById('loaderMsg');
+  msgEl.textContent = msg || LOADER_MSGS[_loaderIdx % LOADER_MSGS.length];
+  _loaderIdx++;
+  el.classList.add('active');
+  setTimeout(() => {
+    el.classList.remove('active');
+    if (cb) cb();
+  }, 2000);
+}
+
+/* ─────────────────────────────────────────────────────────
+   STEP NAVIGATION
+───────────────────────────────────────────────────────── */
+function goStep(n) {
+  // Validate step 1 before advancing
+  if (n === 2 && curStep === 1 && !validateStep1()) return;
+  const msgs = {1:'Reiniciando…', 2:'Processando seus dados…', 3:'Analisando atividade…', 4:'Calculando seu plano…'};
+  showLoader(msgs[n] || LOADER_MSGS[0], () => _applyStep(n));
+}
+
+function _applyStep(n) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page' + n).classList.add('active');
+  for (let i = 1; i <= 4; i++) {
+    const si = document.getElementById('si' + i);
+    si.classList.remove('active', 'done');
+    if (i < n) si.classList.add('done');
+    else if (i === n) si.classList.add('active');
+  }
+  curStep = n;
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+/* ─────────────────────────────────────────────────────────
+   VALIDATION
+───────────────────────────────────────────────────────── */
+function validateStep1() {
+  const idade  = +document.getElementById('idade').value;
+  const peso   = +document.getElementById('peso').value;
+  const altura = +document.getElementById('altura').value;
+  if (!idade  || idade  < 10  || idade  > 100) { alert('Insira uma idade válida (10–100 anos).'); return false; }
+  if (!peso   || peso   < 30  || peso   > 300) { alert('Insira um peso válido (30–300 kg).'); return false; }
+  if (!altura || altura < 100 || altura > 250) { alert('Insira uma altura válida (100–250 cm).'); return false; }
+  return true;
+}
+
+/* ─────────────────────────────────────────────────────────
+   CALCULATION — Mifflin-St Jeor
+───────────────────────────────────────────────────────── */
+function calc() {
+  if (!validateStep1()) return;
+  showLoader('Calculando seu plano…', () => {
+    const idade  = +document.getElementById('idade').value;
+    const peso   = +document.getElementById('peso').value;
+    const altura = +document.getElementById('altura').value;
+    const sexo   = document.querySelector('input[name=sexo]:checked').value;
+    const ativ   = +document.querySelector('input[name=ativ]:checked').value;
+    const metaV  = document.querySelector('input[name=meta]:checked').value;
+
+    // TMB
+    const tmb = sexo === 'm'
+      ? 10 * peso + 6.25 * altura - 5 * idade + 5
+      : 10 * peso + 6.25 * altura - 5 * idade - 161;
+
+    // TDEE
+    const tdee = tmb * ativ;
+
+    // Meta calórica
+    let meta = metaV === 'perder' ? tdee - 500 : metaV === 'ganhar' ? tdee + 300 : tdee;
+    meta = Math.round(meta);
+    targetKcal = meta;
+
+    // Macros
+    const prot  = Math.round(peso * (metaV === 'perder' ? 2.2 : metaV === 'ganhar' ? 2.0 : 1.8));
+    const gord  = Math.round((meta * 0.25) / 9);
+    const carb  = Math.round((meta - prot * 4 - gord * 9) / 4);
+
+    // IMC
+    const hM  = altura / 100;
+    const imc = (peso / (hM * hM)).toFixed(1);
+    let imcLabel, imcColor;
+    if      (+imc < 18.5) { imcLabel = 'Abaixo do peso'; imcColor = '#3b82f6'; }
+    else if (+imc < 25)   { imcLabel = 'Peso normal';    imcColor = '#22c55e'; }
+    else if (+imc < 30)   { imcLabel = 'Sobrepeso';      imcColor = '#f59e0b'; }
+    else                  { imcLabel = 'Obesidade';       imcColor = '#ef4444'; }
+
+    resultData = {
+      idade, peso, altura, sexo, ativ, metaV,
+      tdee: Math.round(tdee), tmb: Math.round(tmb),
+      meta_kcal: meta, prot, gord, carb, imc, imcLabel, imcColor,
+    };
+
+    // Hero
+    document.getElementById('heroKcal').textContent = meta.toLocaleString('pt-BR');
+    const metaLabels = {
+      perder: 'Perder peso (–500 kcal/dia)',
+      manter: 'Manter peso (manutenção)',
+      ganhar: 'Ganhar massa (+300 kcal/dia)',
+    };
+    document.getElementById('heroMeta').textContent = metaLabels[metaV];
+    document.getElementById('mProt').textContent = prot;
+    document.getElementById('mCarb').textContent = carb;
+    document.getElementById('mGord').textContent = gord;
+
+    // Stats
+    document.getElementById('statsGrid').innerHTML = `
+      <div class="stat-card">
+        <div class="sv">${Math.round(tmb)}</div>
+        <div class="sl">TMB (kcal/dia)</div>
+      </div>
+      <div class="stat-card">
+        <div class="sv">${Math.round(tdee)}</div>
+        <div class="sl">TDEE (kcal/dia)</div>
+      </div>
+      <div class="stat-card">
+        <div class="sv">${imc} <span class="imc-badge" style="background:${imcColor}22;color:${imcColor}">${imcLabel}</span></div>
+        <div class="sl">IMC</div>
+      </div>
+      <div class="stat-card">
+        <div class="sv">${peso} kg</div>
+        <div class="sl">Peso atual</div>
+      </div>
+    `;
+
+    // Tip
+    const tips = {
+      perder: 'Foque em alimentos ricos em proteína e fibras para manter a saciedade. Evite bebidas açucaradas e ultraprocessados. O déficit de 500 kcal/dia resulta em ~0,5 kg de perda por semana.',
+      manter: 'Mantenha uma dieta equilibrada com variedade de alimentos integrais. Monitore seu peso semanalmente para ajustes finos.',
+      ganhar: 'Priorize treinos de força e distribua as calorias em 5–6 refeições ao dia. Consuma proteína em todas as refeições para otimizar a síntese muscular.',
+    };
+    document.getElementById('tipBox').innerHTML = `<strong>Dica personalizada:</strong> ${tips[metaV]}`;
+
+    // Simple meals
+    const smEl = document.getElementById('simpleMeals');
+    smEl.innerHTML = '';
+    MD.forEach(m => {
+      const mKcal = Math.round(meta * m.target);
+      const pct   = Math.round(m.target * 100);
+      smEl.innerHTML += `
+        <div class="simple-meal">
+          <div class="sm-icon">${m.icon}</div>
+          <div class="sm-info">
+            <div class="sm-name">${m.label}</div>
+            <div class="sm-kcal">~${mKcal} kcal (${pct}%)</div>
+            <div class="sm-bar"><div class="sm-fill" style="width:${Math.min(pct*2.8,100)}%"></div></div>
+          </div>
+        </div>
+      `;
+    });
+
+    // Build day navs + render
+    buildMealDayNav();
+    buildExDayNav();
+    renderMealPlanner();
+    initExPlan(metaV);
+    renderExerciseTab();
+    renderExLib();
+    buildCustomExDaySelect();
+    switchTab(0);
+    _applyStep(4);
+  });
+}
+
+/* ─────────────────────────────────────────────────────────
+   TABS
+───────────────────────────────────────────────────────── */
+function switchTab(n) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === n));
+  document.querySelectorAll('.tab-panel').forEach((p, i) => p.classList.toggle('active', i === n));
+}
+
+/* ─────────────────────────────────────────────────────────
+   MEAL DAY NAV
+───────────────────────────────────────────────────────── */
+function buildMealDayNav() {
+  const nav = document.getElementById('mealDayNav');
+  nav.innerHTML = '';
+  DAYS.forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'day-btn' + (d === curDay ? ' active' : '');
+    btn.textContent = DAY_LABELS[d];
+    btn.onclick = () => switchDay(d);
+    nav.appendChild(btn);
+  });
+}
+
+function switchDay(d) {
+  curDay = d;
+  document.querySelectorAll('#mealDayNav .day-btn').forEach((b, i) => {
+    b.classList.toggle('active', DAYS[i] === d);
+  });
+  renderMealPlanner();
+}
+
+function copyPrevDay() {
+  const idx = DAYS.indexOf(curDay);
+  if (idx === 0) { alert('Não há dia anterior para copiar.'); return; }
+  const prev = DAYS[idx - 1];
+  MD.forEach(m => { log[curDay][m.k] = log[prev][m.k].map(f => [...f]); });
+  renderMealPlanner();
+}
+
+function clearCurDay() {
+  if (!confirm('Limpar todos os alimentos de ' + DAY_FULL[curDay] + '?')) return;
+  MD.forEach(m => { log[curDay][m.k] = []; });
+  renderMealPlanner();
+}
+
+/* ─────────────────────────────────────────────────────────
+   MEAL PLANNER RENDER
+───────────────────────────────────────────────────────── */
+function renderMealPlanner() {
+  const wrap = document.getElementById('mealPlannerWrap');
+  wrap.innerHTML = '';
+  let dayTotal = 0;
+
+  MD.forEach(m => {
+    const mKcal  = Math.round(targetKcal * m.target);
+    const logged = log[curDay][m.k];
+    const logKcal = logged.reduce((s, f) => s + f[1], 0);
+    dayTotal += logKcal;
+
+    // Chips: first 6
+    const previewItems = FD[m.k].slice(0, 6);
+    const chipsHtml = previewItems.map((item, idx) => {
+      const added = logged.some(l => l[0] === item[0]);
+      return `<button class="chip${added ? ' added' : ''}" onclick="toggleChip('${m.k}',${idx})">${item[0]} <small style="opacity:.7;">${item[1]}cal</small></button>`;
+    }).join('');
+
+    // Logged tags
+    const tagsHtml = logged.map((item, idx) =>
+      `<div class="food-tag">${item[0]} <small style="color:var(--g3);">${item[1]}kcal</small><button onclick="removeFood('${m.k}',${idx})" title="Remover">×</button></div>`
+    ).join('');
+
+    const logSection = logged.length > 0 ? `
+      <div style="font-size:.75rem;font-weight:700;color:var(--g3);margin-top:10px;">Registrado:</div>
+      <div class="food-log">${tagsHtml}</div>
+      <div style="font-size:.82rem;color:var(--g1);font-weight:700;margin-top:4px;">${logKcal.toLocaleString('pt-BR')} kcal</div>
+    ` : '';
+
+    wrap.innerHTML += `
+      <div class="meal-card">
+        <div class="meal-header">
+          <div class="meal-title">${m.icon} ${m.label}</div>
+          <div class="meal-kcal">Meta: ~${mKcal} kcal</div>
+        </div>
+        <div class="chips">${chipsHtml}</div>
+        <button class="more-btn" onclick="openBS('${m.k}')">🔍 Ver mais opções</button>
+        ${logSection}
+      </div>
+    `;
+  });
+
+  document.getElementById('dailyTotalKcal').textContent = dayTotal.toLocaleString('pt-BR');
+  document.getElementById('dailyTotalDay').textContent   = DAY_LABELS[curDay];
+}
+
+function toggleChip(mealKey, itemIdx) {
+  const item = FD[mealKey][itemIdx];
+  const arr  = log[curDay][mealKey];
+  const pos  = arr.findIndex(l => l[0] === item[0]);
+  if (pos >= 0) arr.splice(pos, 1);
+  else arr.push([...item]);
+  renderMealPlanner();
+}
+
+function removeFood(mealKey, idx) {
+  log[curDay][mealKey].splice(idx, 1);
+  renderMealPlanner();
+}
+
+/* ─────────────────────────────────────────────────────────
+   BOTTOM SHEET
+───────────────────────────────────────────────────────── */
+function openBS(mealKey) {
+  currentBSMeal = mealKey;
+  bsChecked = new Set();
+  const meal = MD.find(m => m.k === mealKey);
+  document.getElementById('bsTitle').textContent = meal.icon + ' ' + meal.label;
+  document.getElementById('bsSearch').value = '';
+  renderBSList('');
+  document.getElementById('bsBackdrop').classList.add('open');
+  document.getElementById('bottomSheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeBS() {
+  document.getElementById('bsBackdrop').classList.remove('open');
+  document.getElementById('bottomSheet').classList.remove('open');
+  document.body.style.overflow = '';
+  currentBSMeal = null;
+  bsChecked = new Set();
+}
+
+function renderBSList(query) {
+  const list  = document.getElementById('bsList');
+  const items = FD[currentBSMeal] || [];
+  const q     = query.trim().toLowerCase();
+  const filtered = q ? items.filter(it => it[0].toLowerCase().includes(q)) : items;
+
+  list.innerHTML = '';
+  filtered.forEach(item => {
+    const realIdx = items.indexOf(item);
+    const checked = bsChecked.has(realIdx);
+    const label = document.createElement('label');
+    label.className = 'bs-item' + (checked ? ' checked' : '');
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = checked;
+    cb.dataset.idx = realIdx;
+    cb.addEventListener('change', e => {
+      const i = +e.target.dataset.idx;
+      if (e.target.checked) bsChecked.add(i); else bsChecked.delete(i);
+      label.classList.toggle('checked', e.target.checked);
+      updateBSBtn();
+    });
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = item[0];
+    nameSpan.style.flex = '1';
+
+    const kcalSpan = document.createElement('span');
+    kcalSpan.className = 'bs-kcal';
+    kcalSpan.textContent = item[1] + ' kcal';
+
+    label.appendChild(cb);
+    label.appendChild(nameSpan);
+    label.appendChild(kcalSpan);
+    list.appendChild(label);
+  });
+  updateBSBtn();
+}
+
+function filterBS() {
+  renderBSList(document.getElementById('bsSearch').value);
+}
+
+function updateBSBtn() {
+  const btn   = document.getElementById('bsAddBtn');
+  const count = bsChecked.size;
+  btn.textContent = count > 0
+    ? `Adicionar ${count} selecionado${count > 1 ? 's' : ''}`
+    : 'Nenhum item selecionado';
+  btn.disabled = count === 0;
+}
+
+function addFromBS() {
+  if (!currentBSMeal || bsChecked.size === 0) return;
+  const items = FD[currentBSMeal];
+  bsChecked.forEach(idx => {
+    const item = items[idx];
+    if (!log[curDay][currentBSMeal].some(l => l[0] === item[0])) {
+      log[curDay][currentBSMeal].push([...item]);
+    }
+  });
+  closeBS();
+  renderMealPlanner();
+}
+
+/* ─────────────────────────────────────────────────────────
+   EXERCISE DAY NAV
+───────────────────────────────────────────────────────── */
+function buildExDayNav() {
+  const nav = document.getElementById('exDayNav');
+  nav.innerHTML = '';
+  DAYS.forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'day-btn' + (d === curExDay ? ' active' : '');
+    btn.textContent = DAY_LABELS[d];
+    btn.onclick = () => switchExDay(d);
+    nav.appendChild(btn);
+  });
+}
+
+function switchExDay(d) {
+  curExDay = d;
+  document.querySelectorAll('#exDayNav .day-btn').forEach((b, i) => {
+    b.classList.toggle('active', DAYS[i] === d);
+  });
+  renderExerciseTab();
+}
+
+/* ─────────────────────────────────────────────────────────
+   INIT EXERCISE PLAN
+───────────────────────────────────────────────────────── */
+function initExPlan(goal) {
+  DAYS.forEach(d => { exPlan[d] = []; });
+  if (goal === 'perder') {
+    exPlan['seg'] = [{n:'Corrida moderada',   dur:'35 min', burn:'~350kcal', ico:'🏃'}];
+    exPlan['ter'] = [{n:'HIIT clássico',      dur:'25 min', burn:'~380kcal', ico:'⚡'}];
+    exPlan['qua'] = [{n:'Caminhada rápida',   dur:'45 min', burn:'~280kcal', ico:'🏃'},{n:'Yoga flow', dur:'45 min', burn:'~180kcal', ico:'🧘'}];
+    exPlan['qui'] = [{n:'Corrida moderada',   dur:'35 min', burn:'~350kcal', ico:'🏃'}];
+    exPlan['sex'] = [{n:'HIIT clássico',      dur:'25 min', burn:'~380kcal', ico:'⚡'},{n:'Alongamento global', dur:'30 min', burn:'~100kcal', ico:'🧘'}];
+    exPlan['sab'] = [{n:'Bicicleta outdoor',  dur:'45 min', burn:'~380kcal', ico:'🏃'}];
+    exPlan['dom'] = [];
+  } else if (goal === 'ganhar') {
+    exPlan['seg'] = [{n:'Peito + Tríceps',    dur:'60 min', burn:'~350kcal', ico:'🏋️'}];
+    exPlan['ter'] = [{n:'Costas + Bíceps',    dur:'60 min', burn:'~350kcal', ico:'🏋️'}];
+    exPlan['qua'] = [{n:'Pernas + Glúteos',   dur:'65 min', burn:'~400kcal', ico:'🏋️'}];
+    exPlan['qui'] = [{n:'Ombros + Core',      dur:'55 min', burn:'~300kcal', ico:'🏋️'}];
+    exPlan['sex'] = [{n:'Full Body',          dur:'55 min', burn:'~350kcal', ico:'🏋️'}];
+    exPlan['sab'] = [{n:'Abdômen + Core',     dur:'30 min', burn:'~180kcal', ico:'🏋️'}];
+    exPlan['dom'] = [{n:'Mobilidade articular',dur:'25 min',burn:'~80kcal',  ico:'🧘'}];
+  } else {
+    exPlan['seg'] = [{n:'Corrida leve',       dur:'30 min', burn:'~250kcal', ico:'🏃'}];
+    exPlan['ter'] = [{n:'Full Body',          dur:'55 min', burn:'~350kcal', ico:'🏋️'}];
+    exPlan['qua'] = [{n:'Yoga flow',          dur:'45 min', burn:'~180kcal', ico:'🧘'}];
+    exPlan['qui'] = [{n:'Corrida leve',       dur:'30 min', burn:'~250kcal', ico:'🏃'}];
+    exPlan['sex'] = [{n:'Full Body',          dur:'55 min', burn:'~350kcal', ico:'🏋️'}];
+    exPlan['sab'] = [{n:'Pilates',            dur:'45 min', burn:'~180kcal', ico:'🧘'}];
+    exPlan['dom'] = [];
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   EXERCISE TAB RENDER
+───────────────────────────────────────────────────────── */
+function parseBurn(b) {
+  if (typeof b === 'number') return b;
+  return parseInt(String(b).replace(/\D/g, '')) || 0;
+}
+
+function renderExerciseTab() {
+  const wrap = document.getElementById('exPlannedWrap');
+  const exs  = exPlan[curExDay];
+  document.getElementById('exDayLbl').textContent  = DAY_LABELS[curExDay];
+  const total = exs.reduce((s, e) => s + parseBurn(e.burn), 0);
+  document.getElementById('exDayBurn').textContent = total + ' kcal';
+
+  if (exs.length === 0) {
+    wrap.innerHTML = '<div class="empty-state">Nenhum exercício planejado para este dia.<br>Adicione um da biblioteca abaixo.</div>';
+    return;
+  }
+  wrap.innerHTML = exs.map((ex, idx) => `
+    <div class="ex-card">
+      <div class="ex-ico">${ex.ico || '💪'}</div>
+      <div class="ex-info">
+        <div class="ex-name">${ex.n}</div>
+        <div class="ex-meta">${ex.dur} · ${ex.burn}</div>
+      </div>
+      <button class="ex-remove" onclick="removeExercise(${idx})" title="Remover">&#10005;</button>
+    </div>
+  `).join('');
+}
+
+function removeExercise(idx) {
+  exPlan[curExDay].splice(idx, 1);
+  renderExerciseTab();
+}
+
+function addExerciseLib(n, dur, burn, ico) {
+  exPlan[curExDay].push({ n, dur, burn: '~' + burn + 'kcal', ico });
+  renderExerciseTab();
+}
+
+/* ─────────────────────────────────────────────────────────
+   EXERCISE LIBRARY RENDER
+───────────────────────────────────────────────────────── */
+function renderExLib() {
+  const wrap = document.getElementById('exLibWrap');
+  wrap.innerHTML = '';
+  EX_LIB.forEach((cat, ci) => {
+    const itemsId = 'exCatItems' + ci;
+
+    const header = document.createElement('div');
+    header.className = 'ex-cat-header';
+    header.innerHTML = `
+      <span class="cat-left">${cat.ico} ${cat.cat}</span>
+      <span class="cat-arrow">&#9660;</span>
+    `;
+    header.onclick = () => {
+      header.classList.toggle('open');
+      document.getElementById(itemsId).classList.toggle('open');
+    };
+
+    const itemsDiv = document.createElement('div');
+    itemsDiv.className = 'ex-cat-items';
+    itemsDiv.id = itemsId;
+
+    cat.items.forEach(item => {
+      const btn = document.createElement('button');
+      btn.className = 'ex-chip';
+      btn.innerHTML = `${cat.ico} ${item.n}<span class="ec-dur">${item.dur} · ~${item.burn}kcal</span>`;
+      btn.onclick = () => addExerciseLib(item.n, item.dur, item.burn, cat.ico);
+      itemsDiv.appendChild(btn);
+    });
+
+    wrap.appendChild(header);
+    wrap.appendChild(itemsDiv);
+  });
+}
+
+/* ─────────────────────────────────────────────────────────
+   CUSTOM EXERCISE
+───────────────────────────────────────────────────────── */
+function buildCustomExDaySelect() {
+  const sel = document.getElementById('cExDay');
+  sel.innerHTML = '';
+  DAYS.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d;
+    opt.textContent = DAY_FULL[d];
+    sel.appendChild(opt);
+  });
+  sel.value = curExDay;
+}
+
+function addCustomEx() {
+  const name = document.getElementById('cExName').value.trim();
+  const day  = document.getElementById('cExDay').value;
+  const dur  = document.getElementById('cExDur').value.trim();
+  const burn = +document.getElementById('cExBurn').value;
+
+  if (!name) { alert('Informe o nome do exercício.'); return; }
+  if (!dur)  { alert('Informe a duração.'); return; }
+  if (!burn) { alert('Informe as calorias estimadas.'); return; }
+
+  exPlan[day].push({ n: name, dur, burn: '~' + burn + 'kcal', ico: '💪' });
+  if (day === curExDay) renderExerciseTab();
+
+  document.getElementById('cExName').value = '';
+  document.getElementById('cExDur').value  = '';
+  document.getElementById('cExBurn').value = '';
+  alert('Exercício adicionado em ' + DAY_FULL[day] + '!');
+}
+
+/* ─────────────────────────────────────────────────────────
+   PRINT
+───────────────────────────────────────────────────────── */
+function printPlan() {
+  const {meta_kcal, prot, carb, gord, tmb, tdee, imc, imcLabel, metaV} = resultData;
+  const metaLabels = {perder:'Perder peso',manter:'Manter peso',ganhar:'Ganhar massa'};
+
+  let html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <title>Plano Nutricional — CalcNutri Pro</title>
+  <style>
+    body{font-family:Arial,sans-serif;color:#1a2e23;padding:24px;max-width:800px;margin:0 auto;}
+    h1{color:#2d6a4f;margin-bottom:4px;}
+    h2{color:#40916c;border-bottom:2px solid #b7e4c7;padding-bottom:6px;margin-top:28px;}
+    h3{color:#52b788;margin-top:16px;margin-bottom:6px;}
+    .meta-row{display:flex;gap:14px;flex-wrap:wrap;margin:12px 0;}
+    .mi{background:#f0faf2;border-radius:8px;padding:10px 16px;min-width:110px;}
+    .mi .v{font-size:1.4rem;font-weight:900;color:#1b4332;}
+    .mi .l{font-size:.72rem;color:#40916c;}
+    table{width:100%;border-collapse:collapse;margin:8px 0;}
+    th{background:#d8f3dc;color:#1b4332;padding:8px;text-align:left;font-size:.85rem;}
+    td{padding:7px 8px;border-bottom:1px solid #e8f5e9;font-size:.85rem;}
+    .empty{color:#95d5b2;font-style:italic;font-size:.85rem;}
+    ul{margin:4px 0 8px 18px;padding:0;}
+    li{font-size:.85rem;margin:2px 0;}
+    @media print{@page{margin:14mm;}}
+  </style></head><body>
+  <h1>Plano Nutricional — CalcNutri Pro</h1>
+  <p style="color:#52b788;font-size:.85rem;">Gerado em ${new Date().toLocaleDateString('pt-BR')} · Objetivo: ${metaLabels[metaV]}</p>
+  <h2>Resumo metabólico</h2>
+  <div class="meta-row">
+    <div class="mi"><div class="v">${meta_kcal}</div><div class="l">Meta (kcal)</div></div>
+    <div class="mi"><div class="v">${tmb}</div><div class="l">TMB</div></div>
+    <div class="mi"><div class="v">${tdee}</div><div class="l">TDEE</div></div>
+    <div class="mi"><div class="v">${imc}</div><div class="l">IMC (${imcLabel})</div></div>
+  </div>
+  <div class="meta-row">
+    <div class="mi"><div class="v">${prot}g</div><div class="l">Proteína</div></div>
+    <div class="mi"><div class="v">${carb}g</div><div class="l">Carboidrato</div></div>
+    <div class="mi"><div class="v">${gord}g</div><div class="l">Gordura</div></div>
+  </div>
+  <h2>Plano Alimentar Semanal</h2>`;
+
+  DAYS.forEach(d => {
+    html += `<h3>${DAY_FULL[d]}</h3>`;
+    let hasFoods = false;
+    MD.forEach(m => {
+      const foods = log[d][m.k];
+      if (foods.length > 0) {
+        hasFoods = true;
+        const total = foods.reduce((s, f) => s + f[1], 0);
+        html += `<strong>${m.icon} ${m.label}</strong> — ${total} kcal<ul>`;
+        foods.forEach(f => { html += `<li>${f[0]} · ${f[1]} kcal</li>`; });
+        html += '</ul>';
+      }
+    });
+    if (!hasFoods) html += '<p class="empty">Nenhum alimento registrado.</p>';
+  });
+
+  html += '<h2>Plano de Exercícios Semanal</h2>';
+  DAYS.forEach(d => {
+    const exs = exPlan[d];
+    html += `<h3>${DAY_FULL[d]}</h3>`;
+    if (exs.length === 0) {
+      html += '<p class="empty">Descanso / sem exercícios.</p>';
+    } else {
+      html += '<table><tr><th>Exercício</th><th>Duração</th><th>Queima estimada</th></tr>';
+      exs.forEach(e => {
+        html += `<tr><td>${e.ico || ''} ${e.n}</td><td>${e.dur}</td><td>${e.burn}</td></tr>`;
+      });
+      html += '</table>';
+    }
+  });
+
+  html += '</body></html>';
+
+  const win = window.open('', '_blank');
+  if (!win) { alert('Permita pop-ups para imprimir.'); return; }
+  win.document.write(html);
+  win.document.close();
+  win.print();
+}
+
+/* ─────────────────────────────────────────────────────────
+   RESET
+───────────────────────────────────────────────────────── */
+function resetApp() {
+  if (!confirm('Deseja recalcular? Os dados do plano atual serão apagados.')) return;
+  showLoader('Reiniciando…', () => {
+    document.getElementById('idade').value = '';
+    document.getElementById('peso').value  = '';
+    document.getElementById('altura').value = '';
+    document.querySelector('input[name=sexo][value=m]').checked = true;
+    document.querySelector('input[name=ativ][value="1.2"]').checked = true;
+    document.querySelector('input[name=meta][value=perder]').checked = true;
+
+    DAYS.forEach(d => {
+      MD.forEach(m => { log[d][m.k] = []; });
+      exPlan[d] = [];
+    });
+    curDay     = 'seg';
+    curExDay   = 'seg';
+    targetKcal = 0;
+    resultData = {};
+
+    // Reset radio visuals
+    document.querySelectorAll('.opt-label').forEach(l => {
+      l.classList.remove('selected');
+      const r = l.querySelector('input');
+      if (r && r.checked) l.classList.add('selected');
+    });
+
+    switchTab(0);
+    _applyStep(1);
+  });
+}
+
+/* ─────────────────────────────────────────────────────────
+   RADIO VISUAL SYNC
+───────────────────────────────────────────────────────── */
+document.querySelectorAll('.opt-label input[type=radio]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    const name = radio.name;
+    document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
+      r.closest('.opt-label').classList.toggle('selected', r.checked);
+    });
+  });
+});
+
+/* ─────────────────────────────────────────────────────────
+   PWA
+───────────────────────────────────────────────────────── */
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('pwaBanner').classList.add('visible');
+});
+
+document.getElementById('pwaInstallBtn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  if (outcome === 'accepted') {
+    document.getElementById('pwaBanner').classList.remove('visible');
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('pwaBanner').classList.remove('visible');
+});
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => {
+      console.warn('Service Worker registration failed:', err);
+    });
+  });
+}
+
+/* ─────────────────────────────────────────────────────────
+   KEYBOARD
+───────────────────────────────────────────────────────── */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeBS();
+});
+</script>
+</body>
+</html>

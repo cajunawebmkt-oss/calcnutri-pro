@@ -1,0 +1,26 @@
+{
+  "name": "CalcNutri Pro",
+  "short_name": "CalcNutri",
+  "description": "Calculadora de calorias, plano alimentar e de exercícios personalizado",
+  "start_url": "./calculadora-calorias.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#d8f3dc",
+  "theme_color": "#2d6a4f",
+  "lang": "pt-BR",
+  "categories": ["health", "fitness"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='115' fill='%232d6a4f'/%3E%3Ccircle cx='256' cy='256' r='160' fill='%2352b788'/%3E%3Cpath d='M180 240 Q230 150 256 200 Q282 150 332 240 Q290 320 256 300 Q222 320 180 240Z' fill='%231b4332'/%3E%3Ccircle cx='256' cy='210' r='28' fill='%23d8f3dc'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='115' fill='%232d6a4f'/%3E%3Ccircle cx='256' cy='256' r='160' fill='%2352b788'/%3E%3Cpath d='M180 240 Q230 150 256 200 Q282 150 332 240 Q290 320 256 300 Q222 320 180 240Z' fill='%231b4332'/%3E%3Ccircle cx='256' cy='210' r='28' fill='%23d8f3dc'/%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
