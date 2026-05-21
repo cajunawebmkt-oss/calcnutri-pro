@@ -387,6 +387,54 @@
     }
     .empty-state { text-align:center; padding:28px 16px; color:var(--g5); font-size:.85rem; line-height:1.55; }
 
+    /* ── HEALTH / BLOOD / BIO ──────────────────────────── */
+    .health-sect-title {
+      font-size:.88rem; font-weight:800; color:var(--g1);
+      margin:18px 0 12px; padding-bottom:8px; border-bottom:2px solid var(--g7);
+    }
+    .blood-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+    .res-card {
+      background:#fff; border-radius:12px; padding:13px 15px;
+      margin-bottom:8px; box-shadow:0 2px 8px rgba(27,67,50,.07);
+      border-left:4px solid var(--g7);
+    }
+    .res-card.ok   { border-left-color:#22c55e; }
+    .res-card.warn { border-left-color:#f59e0b; }
+    .res-card.bad  { border-left-color:#ef4444; }
+    .rc-row { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+    .rc-name { font-size:.83rem; font-weight:700; color:var(--g1); }
+    .rc-val  { font-size:1.05rem; font-weight:800; color:var(--g2); }
+    .rc-badge {
+      font-size:.68rem; font-weight:700; padding:2px 8px; border-radius:10px; white-space:nowrap;
+    }
+    .rc-badge.ok   { background:#dcfce7; color:#15803d; }
+    .rc-badge.warn { background:#fef9c3; color:#92400e; }
+    .rc-badge.bad  { background:#fee2e2; color:#991b1b; }
+    .rc-tip { font-size:.77rem; color:#374151; margin-top:5px; line-height:1.45; }
+    .rc-foods { font-size:.74rem; color:var(--g3); margin-top:3px; }
+    .bio-res-card {
+      background:#fff; border-radius:12px; padding:13px 15px;
+      margin-bottom:8px; box-shadow:0 2px 8px rgba(27,67,50,.07);
+    }
+    .br-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+    .br-name { font-size:.83rem; font-weight:700; color:var(--g1); }
+    .br-val  { font-size:1.05rem; font-weight:800; color:var(--g2); }
+    .bio-bar { height:6px; border-radius:3px; background:var(--g7); overflow:hidden; margin-bottom:4px; }
+    .bio-bar-fill { height:100%; border-radius:3px; transition:width .6s; }
+    .recalc-hero {
+      background:linear-gradient(135deg,var(--g2),var(--g3)); border-radius:14px;
+      padding:18px 20px; margin:14px 0; color:#fff; text-align:center;
+    }
+    .rh-val { font-size:2.1rem; font-weight:900; }
+    .rh-lbl { font-size:.8rem; opacity:.82; margin-top:3px; }
+    .vit-card {
+      background:linear-gradient(135deg,var(--g9),#fff); border:1px solid var(--g6);
+      border-radius:10px; padding:11px 14px; margin-bottom:8px;
+      font-size:.8rem; color:var(--g1); line-height:1.5;
+    }
+    .vit-card strong { color:var(--g2); display:block; font-size:.83rem; margin-bottom:1px; }
+    @media(max-width:420px) { .blood-grid { grid-template-columns:1fr; } }
+
     /* ── PRINT ──────────────────────────────────────────── */
     @media print {
       body { background:#fff; }
@@ -619,6 +667,7 @@
     <div class="tabs-header">
       <button class="tab-btn active" onclick="switchTab(0)">Resumo</button>
       <button class="tab-btn" onclick="switchTab(1)">Refeições</button>
+      <button class="tab-btn" onclick="switchTab(2)">Saúde</button>
     </div>
 
     <!-- TAB 0: Resumo -->
@@ -645,6 +694,52 @@
         <div class="dt-val" id="dailyTotalKcal">0</div>
         <div class="dt-lbl">kcal registradas — <span id="dailyTotalDay">Seg</span></div>
       </div>
+    </div>
+
+    <!-- TAB 2: Saúde -->
+    <div class="tab-panel" id="tab2">
+
+      <p class="health-sect-title">&#129298; Exames de Sangue</p>
+      <div class="blood-grid" id="bloodInputGrid"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+        <select id="bloodSex" style="flex:1;min-width:120px;padding:9px 12px;border-radius:10px;border:1.5px solid var(--g7);background:#fff;font-size:.85rem;color:var(--g1);">
+          <option value="m">Masculino</option>
+          <option value="f">Feminino</option>
+        </select>
+        <button class="btn" onclick="analyzeBlood()" style="flex:2;">&#128300; Analisar Exames</button>
+      </div>
+      <div id="bloodResultsWrap" style="display:none;">
+        <p class="health-sect-title">&#128203; Resultados</p>
+        <div id="bloodResults"></div>
+        <p class="health-sect-title">&#127807; Recomendações Nutricionais</p>
+        <div id="vitaminRecs"></div>
+      </div>
+
+      <p class="health-sect-title">&#9878;&#65039; Bioimpedância</p>
+      <div class="blood-grid">
+        <div>
+          <label style="font-size:.8rem;font-weight:700;color:var(--g1);display:block;margin-bottom:4px;">% Gordura Corporal</label>
+          <input type="number" id="bioFat" placeholder="Ex: 22" min="3" max="70" step="0.1" style="width:100%;padding:10px 13px;border-radius:10px;border:1.5px solid var(--g7);background:#fff;font-size:.9rem;color:var(--g1);">
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:700;color:var(--g1);display:block;margin-bottom:4px;">Massa Muscular (kg)</label>
+          <input type="number" id="bioMuscle" placeholder="Ex: 48" min="10" max="120" step="0.1" style="width:100%;padding:10px 13px;border-radius:10px;border:1.5px solid var(--g7);background:#fff;font-size:.9rem;color:var(--g1);">
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:700;color:var(--g1);display:block;margin-bottom:4px;">Gordura Visceral</label>
+          <input type="number" id="bioVisceral" placeholder="Ex: 8" min="1" max="30" style="width:100%;padding:10px 13px;border-radius:10px;border:1.5px solid var(--g7);background:#fff;font-size:.9rem;color:var(--g1);">
+        </div>
+        <div>
+          <label style="font-size:.8rem;font-weight:700;color:var(--g1);display:block;margin-bottom:4px;">Água Corporal (%)</label>
+          <input type="number" id="bioWater" placeholder="Ex: 55" min="20" max="80" step="0.1" style="width:100%;padding:10px 13px;border-radius:10px;border:1.5px solid var(--g7);background:#fff;font-size:.9rem;color:var(--g1);">
+        </div>
+      </div>
+      <button class="btn" onclick="analyzeBio()" style="width:100%;margin-top:8px;">&#128202; Analisar Composição Corporal</button>
+      <div id="bioResultsWrap" style="display:none;">
+        <div id="bioResults"></div>
+        <div id="bioRecalcWrap"></div>
+      </div>
+
     </div>
 
   </div><!-- /page4 -->
@@ -1281,12 +1376,239 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+/* ── HEALTH / BLOOD / BIO ────────────────────────────── */
+const BLOOD_MARKERS = [
+  {id:'glicemia', name:'Glicemia Jejum',   unit:'mg/dL', placeholder:'Ex: 92'},
+  {id:'hba1c',    name:'HbA1c',            unit:'%',     placeholder:'Ex: 5.4',  step:'0.1'},
+  {id:'colTotal', name:'Colesterol Total', unit:'mg/dL', placeholder:'Ex: 190'},
+  {id:'hdl',      name:'HDL (bom)',        unit:'mg/dL', placeholder:'Ex: 55'},
+  {id:'ldl',      name:'LDL (ruim)',       unit:'mg/dL', placeholder:'Ex: 120'},
+  {id:'trig',     name:'Triglicerídeos',   unit:'mg/dL', placeholder:'Ex: 140'},
+  {id:'vitd',     name:'Vitamina D',       unit:'ng/mL', placeholder:'Ex: 32',   step:'0.1'},
+  {id:'vitb12',   name:'Vitamina B12',     unit:'pg/mL', placeholder:'Ex: 350'},
+  {id:'ferrit',   name:'Ferritina',        unit:'ng/mL', placeholder:'Ex: 80',   step:'0.1'},
+  {id:'tsh',      name:'TSH (tireoide)',   unit:'mUI/L', placeholder:'Ex: 2.1',  step:'0.1'},
+];
+
+function buildBloodInputGrid() {
+  const g = document.getElementById('bloodInputGrid');
+  if (!g) return;
+  g.innerHTML = BLOOD_MARKERS.map(m =>
+    '<div>' +
+    '<label style="font-size:.8rem;font-weight:700;color:var(--g1);display:block;margin-bottom:4px;">' + m.name +
+    ' <span style="font-weight:400;color:var(--g3)">(' + m.unit + ')</span></label>' +
+    '<input type="number" id="bi_' + m.id + '" placeholder="' + m.placeholder + '" step="' + (m.step || '1') + '"' +
+    ' style="width:100%;padding:10px 13px;border-radius:10px;border:1.5px solid var(--g7);background:#fff;font-size:.9rem;color:var(--g1);">' +
+    '</div>'
+  ).join('');
+}
+
+function classifyMarker(id, val, sex) {
+  const rules = {
+    glicemia: function(v) {
+      if (v < 70)   return {s:'bad',  l:'Baixa',        t:'Hipoglicemia. Risco de tontura e fraqueza.',         f:'Frutas, sucos naturais (com supervisão médica)'};
+      if (v <= 99)  return {s:'ok',   l:'Normal',        t:'Glicemia em jejum saudável.',                        f:'Mantenha padrão alimentar atual'};
+      if (v <= 125) return {s:'warn', l:'Pré-diabético', t:'Reduza açúcares refinados e carboidratos simples.',  f:'Aveia, leguminosas, vegetais, proteínas magras'};
+      return          {s:'bad',  l:'Elevada',       t:'Glicemia alta. Consulte seu médico.',                f:'Evite açúcar, pão branco, arroz refinado'};
+    },
+    hba1c: function(v) {
+      if (v < 5.7)  return {s:'ok',   l:'Normal',        t:'Controle glicêmico excelente.',                      f:'Mantenha dieta equilibrada'};
+      if (v < 6.5)  return {s:'warn', l:'Pré-diabetes',  t:'Controle glicêmico comprometido. Mude a dieta.',     f:'Fibras, proteínas, gorduras boas; menos açúcar'};
+      return          {s:'bad',  l:'Diabetes',      t:'HbA1c elevada. Acompanhamento médico necessário.',   f:'Dieta com baixo índice glicêmico; consultar nutricionista'};
+    },
+    colTotal: function(v) {
+      if (v < 200)  return {s:'ok',   l:'Desejável',     t:'Colesterol total em nível saudável.',                f:'Mantenha dieta equilibrada'};
+      if (v < 240)  return {s:'warn', l:'Limítrofe',     t:'Reduza gorduras saturadas.',                         f:'Aveia, azeite, peixes, nozes, fibras solúveis'};
+      return          {s:'bad',  l:'Alto',           t:'Colesterol alto. Risco cardiovascular aumentado.',  f:'Evite gordura trans, carnes gordas, laticínios integrais'};
+    },
+    hdl: function(v) {
+      var min = sex === 'f' ? 50 : 40;
+      if (v >= min) return {s:'ok',   l:'Adequado',      t:'HDL protetivo.',                                     f:'Continue com atividade física e gorduras boas'};
+      if (v >= 35)  return {s:'warn', l:'Baixo',         t:'HDL abaixo do ideal. Aumente gorduras saudáveis.',   f:'Azeite, abacate, oleaginosas, omega-3'};
+      return          {s:'bad',  l:'Muito baixo',   t:'HDL muito baixo. Risco cardiovascular.',             f:'Ômega-3, atividade física aeróbica'};
+    },
+    ldl: function(v) {
+      if (v < 100)  return {s:'ok',   l:'Ótimo',         t:'LDL em nível ótimo.',                                f:'Mantenha padrão alimentar'};
+      if (v < 130)  return {s:'ok',   l:'Adequado',      t:'LDL adequado.',                                      f:'Mantenha padrão alimentar'};
+      if (v < 160)  return {s:'warn', l:'Limítrofe',     t:'Reduza gorduras saturadas e trans.',                 f:'Aveia, maçã, chia, peixes gordos, nozes'};
+      return          {s:'bad',  l:'Alto',           t:'LDL alto. Risco de aterosclerose.',                 f:'Evite frituras, gordura animal, alimentos processados'};
+    },
+    trig: function(v) {
+      if (v < 150)  return {s:'ok',   l:'Normal',        t:'Triglicerídeos em nível saudável.',                  f:'Mantenha padrão alimentar'};
+      if (v < 200)  return {s:'warn', l:'Limítrofe',     t:'Reduza carboidratos simples e álcool.',              f:'Peixes, chia, nozes; evite açúcar e álcool'};
+      if (v < 500)  return {s:'bad',  l:'Alto',          t:'Triglicerídeos altos. Risco cardiovascular.',        f:'Dieta pobre em carboidratos simples e gorduras saturadas'};
+      return          {s:'bad',  l:'Muito alto',    t:'Triglicerídeos muito altos. Consulte médico.',        f:'Tratamento médico necessário'};
+    },
+    vitd: function(v) {
+      if (v < 20)   return {s:'bad',  l:'Deficiente',    t:'Deficiência de Vit. D. Risco de fraqueza óssea.',    f:'Salmão, sardinha, ovos, cogumelos; exposição solar'};
+      if (v < 30)   return {s:'warn', l:'Insuficiente',  t:'Vitamina D insuficiente.',                           f:'Peixes gordos, leite fortificado, ovos, exposição solar'};
+      if (v <= 100) return {s:'ok',   l:'Adequado',      t:'Vitamina D em nível saudável.',                      f:'Mantenha hábitos atuais'};
+      return          {s:'warn', l:'Elevado',        t:'Vitamina D elevada. Cuidado com suplementação.',     f:'Reduza suplementos; consulte médico'};
+    },
+    vitb12: function(v) {
+      if (v < 200)  return {s:'bad',  l:'Deficiente',    t:'Deficiência de B12. Risco de anemia e neuropatia.',  f:'Carnes, ovos, laticínios; veganos devem suplementar'};
+      if (v < 300)  return {s:'warn', l:'Baixo-normal',  t:'B12 no limite inferior.',                            f:'Fígado, carne vermelha, frango, ovos, leite'};
+      if (v <= 900) return {s:'ok',   l:'Normal',        t:'Vitamina B12 adequada.',                             f:'Mantenha consumo atual'};
+      return          {s:'warn', l:'Elevado',        t:'B12 elevada. Possível suplementação excessiva.',     f:'Reavalie suplementação com médico'};
+    },
+    ferrit: function(v) {
+      var hi = sex === 'f' ? 150 : 400;
+      if (v < 12)   return {s:'bad',  l:'Muito baixa',   t:'Ferritina muito baixa. Anemia ferropriva provável.', f:'Fígado, carnes vermelhas, feijão, lentilha, espinafre + vit. C'};
+      if (v < 30)   return {s:'warn', l:'Baixa',         t:'Ferritina baixa. Risco de anemia.',                  f:'Carne vermelha, fígado, feijão, lentilha, espinafre'};
+      if (v <= hi)  return {s:'ok',   l:'Normal',        t:'Ferritina adequada.',                                f:'Mantenha dieta equilibrada'};
+      return          {s:'warn', l:'Elevada',        t:'Ferritina elevada. Pode indicar inflamação.',        f:'Consulte médico para investigação'};
+    },
+    tsh: function(v) {
+      if (v < 0.4)  return {s:'bad',  l:'Baixo',         t:'TSH baixo: possível hipertireoidismo. Consulte médico.', f:'Consulte endocrinologista'};
+      if (v <= 4.0) return {s:'ok',   l:'Normal',        t:'Tireoide funcionando normalmente.',                  f:'Mantenha ingestão adequada de iodo e selênio (frutos do mar, nozes-do-pará)'};
+      if (v <= 10)  return {s:'warn', l:'Elevado',       t:'TSH elevado: possível hipotireoidismo. Consulte médico.', f:'Algas marinhas (iodo), nozes-do-pará (selênio); consulte médico'};
+      return          {s:'bad',  l:'Muito elevado', t:'TSH muito alto. Hipotireoidismo provável.',           f:'Tratamento médico necessário'};
+    },
+  };
+  var fn = rules[id];
+  if (!fn || isNaN(val)) return null;
+  return fn(val);
+}
+
+function analyzeBlood() {
+  var sex  = document.getElementById('bloodSex').value;
+  var wrap = document.getElementById('bloodResultsWrap');
+  var resDiv = document.getElementById('bloodResults');
+  var vitDiv = document.getElementById('vitaminRecs');
+  var html = '';
+  var recs = [];
+  var filled = 0;
+  BLOOD_MARKERS.forEach(function(mk) {
+    var inp = document.getElementById('bi_' + mk.id);
+    if (!inp || inp.value === '') return;
+    filled++;
+    var val = parseFloat(inp.value);
+    var r = classifyMarker(mk.id, val, sex);
+    if (!r) return;
+    html +=
+      '<div class="res-card ' + r.s + '">' +
+        '<div class="rc-row">' +
+          '<span class="rc-name">' + mk.name + '</span>' +
+          '<span class="rc-val">' + val + ' ' + mk.unit + '</span>' +
+          '<span class="rc-badge ' + r.s + '">' + r.l + '</span>' +
+        '</div>' +
+        '<div class="rc-tip">' + r.t + '</div>' +
+        '<div class="rc-foods">&#127807; ' + r.f + '</div>' +
+      '</div>';
+    if (r.s !== 'ok') recs.push(r);
+  });
+  if (!filled) { alert('Preencha ao menos um exame.'); return; }
+  resDiv.innerHTML = html;
+  if (recs.length === 0) {
+    vitDiv.innerHTML = '<div class="vit-card"><strong>&#10003; Todos os exames estão dentro da normalidade!</strong>Continue com sua alimentação equilibrada e mantenha os exames em dia.</div>';
+  } else {
+    vitDiv.innerHTML = recs.map(function(r) {
+      return '<div class="vit-card"><strong>' + (r.s === 'bad' ? '&#9888; Atenção: ' : '&#128310; Observação: ') + r.l + '</strong>' + r.t + '<br><em>Alimentos indicados: ' + r.f + '</em></div>';
+    }).join('');
+  }
+  wrap.style.display = 'block';
+  wrap.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function analyzeBio() {
+  var fat     = parseFloat(document.getElementById('bioFat').value);
+  var musc    = parseFloat(document.getElementById('bioMuscle').value);
+  var visc    = parseFloat(document.getElementById('bioVisceral').value);
+  var water   = parseFloat(document.getElementById('bioWater').value);
+  var peso    = resultData.peso || 0;
+  var sex     = resultData.sexo || 'm';
+  if (isNaN(fat)) { alert('Informe o % de gordura corporal.'); return; }
+  var html = '';
+
+  var fatStatus, fatLabel;
+  if (sex === 'f') {
+    fatStatus = fat < 14 ? 'bad' : fat <= 24 ? 'ok' : fat <= 31 ? 'warn' : 'bad';
+    fatLabel  = fat < 14 ? 'Muito baixa' : fat <= 24 ? 'Saudável' : fat <= 31 ? 'Acima do ideal' : 'Obesidade';
+  } else {
+    fatStatus = fat < 6  ? 'bad' : fat <= 17 ? 'ok' : fat <= 25 ? 'warn' : 'bad';
+    fatLabel  = fat < 6  ? 'Muito baixa' : fat <= 17 ? 'Saudável' : fat <= 25 ? 'Acima do ideal' : 'Obesidade';
+  }
+  var fatColor  = fatStatus === 'ok' ? '#22c55e' : fatStatus === 'warn' ? '#f59e0b' : '#ef4444';
+  var fatPct    = Math.min(fat / (sex === 'f' ? 45 : 35) * 100, 100).toFixed(1);
+  html +=
+    '<div class="bio-res-card">' +
+      '<div class="br-top"><span class="br-name">% Gordura Corporal</span><span class="br-val">' + fat + '%</span></div>' +
+      '<div class="bio-bar"><div class="bio-bar-fill" style="width:' + fatPct + '%;background:' + fatColor + ';"></div></div>' +
+      '<div style="font-size:.77rem;color:#374151;">Classificação: <strong>' + fatLabel + '</strong></div>' +
+    '</div>';
+
+  if (!isNaN(musc)) {
+    var muscPct = Math.min(musc / 60 * 100, 100).toFixed(1);
+    html +=
+      '<div class="bio-res-card">' +
+        '<div class="br-top"><span class="br-name">Massa Muscular</span><span class="br-val">' + musc + ' kg</span></div>' +
+        '<div class="bio-bar"><div class="bio-bar-fill" style="width:' + muscPct + '%;background:#22c55e;"></div></div>' +
+      '</div>';
+  }
+  if (!isNaN(visc)) {
+    var viscStatus = visc <= 9 ? 'ok' : visc <= 14 ? 'warn' : 'bad';
+    var viscLabel  = visc <= 9 ? 'Normal' : visc <= 14 ? 'Elevada' : 'Muito elevada';
+    var viscColor  = viscStatus === 'ok' ? '#22c55e' : viscStatus === 'warn' ? '#f59e0b' : '#ef4444';
+    html +=
+      '<div class="bio-res-card">' +
+        '<div class="br-top"><span class="br-name">Gordura Visceral</span><span class="br-val">' + visc + '</span></div>' +
+        '<div class="bio-bar"><div class="bio-bar-fill" style="width:' + Math.min(visc / 20 * 100, 100).toFixed(1) + '%;background:' + viscColor + ';"></div></div>' +
+        '<div style="font-size:.77rem;color:#374151;">Classificação: <strong>' + viscLabel + '</strong></div>' +
+      '</div>';
+  }
+  if (!isNaN(water)) {
+    var waterLabel = (water >= 50 && water <= 65) ? 'Adequada' : water < 50 ? 'Abaixo do ideal' : 'Acima do ideal';
+    html +=
+      '<div class="bio-res-card">' +
+        '<div class="br-top"><span class="br-name">Água Corporal</span><span class="br-val">' + water + '%</span></div>' +
+        '<div class="bio-bar"><div class="bio-bar-fill" style="width:' + Math.min(water / 70 * 100, 100).toFixed(1) + '%;background:#3b82f6;"></div></div>' +
+        '<div style="font-size:.77rem;color:#374151;">Classificação: <strong>' + waterLabel + '</strong></div>' +
+      '</div>';
+  }
+
+  if (peso > 0) {
+    var lbm    = peso * (1 - fat / 100);
+    var bmrKM  = Math.round(370 + 21.6 * lbm);
+    var ativ   = resultData.ativ || 1.55;
+    var tdeeKM = Math.round(bmrKM * ativ);
+    html +=
+      '<div class="recalc-hero">' +
+        '<div class="rh-lbl">TMB Katch-McArdle (baseada em massa magra)</div>' +
+        '<div class="rh-val">' + bmrKM + ' kcal</div>' +
+        '<div class="rh-lbl" style="margin-top:8px;">TDEE ajustado: <strong>' + tdeeKM + ' kcal/dia</strong></div>' +
+        '<button onclick="applyBioKcal(' + tdeeKM + ')" style="margin-top:12px;background:rgba(255,255,255,.25);border:1.5px solid rgba(255,255,255,.5);color:#fff;border-radius:10px;padding:10px 22px;font-size:.85rem;font-weight:700;cursor:pointer;">Aplicar ao meu plano</button>' +
+      '</div>';
+  }
+
+  document.getElementById('bioResults').innerHTML = html;
+  var wrap = document.getElementById('bioResultsWrap');
+  wrap.style.display = 'block';
+  wrap.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function applyBioKcal(kcal) {
+  if (!targetKcal) { alert('Calcule seu plano primeiro antes de aplicar.'); return; }
+  targetKcal = kcal;
+  resultData.meta_kcal = kcal;
+  var prot = Math.round(resultData.peso * (resultData.metaV === 'perder' ? 2.2 : resultData.metaV === 'ganhar' ? 2.0 : 1.8));
+  var gord = Math.round((kcal * 0.25) / 9);
+  var carb = Math.round((kcal - prot * 4 - gord * 9) / 4);
+  resultData.prot = prot; resultData.gord = gord; resultData.carb = carb;
+  document.getElementById('heroKcal').textContent = kcal.toLocaleString('pt-BR');
+  document.getElementById('mProt').textContent = prot;
+  document.getElementById('mCarb').textContent = carb;
+  document.getElementById('mGord').textContent = gord;
+  alert('Meta calórica atualizada para ' + kcal + ' kcal com base na sua composição corporal!');
+}
+
 /* ─────────────────────────────────────────────────────────
    KEYBOARD
 ───────────────────────────────────────────────────────── */
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeBS();
 });
+
+buildBloodInputGrid();
 </script>
 </body>
 </html>
