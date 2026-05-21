@@ -380,55 +380,6 @@
     .bs-add-btn:hover { transform:translateY(-1px); }
     .bs-add-btn:disabled { opacity:.5; cursor:default; transform:none; }
 
-    /* ── EXERCISE CARDS ─────────────────────────────────── */
-    .ex-card {
-      background:#fff; border-radius:12px; padding:14px 16px;
-      margin-bottom:10px; box-shadow:0 2px 10px rgba(27,67,50,.07);
-      display:flex; align-items:center; gap:12px;
-      border-left:3px solid var(--g4);
-    }
-    .ex-ico { font-size:1.5rem; line-height:1; flex-shrink:0; }
-    .ex-info { flex:1; }
-    .ex-name { font-size:.9rem; font-weight:700; color:var(--g1); }
-    .ex-meta { font-size:.75rem; color:var(--g3); margin-top:2px; }
-    .ex-remove {
-      background:none; border:none; cursor:pointer; color:var(--g5);
-      font-size:1.25rem; padding:4px 6px; border-radius:6px;
-      transition:all var(--tr); line-height:1;
-    }
-    .ex-remove:hover { background:#fee2e2; color:#991b1b; }
-    .ex-day-total {
-      background:var(--g8); border-radius:10px; padding:12px 16px;
-      font-size:.9rem; font-weight:700; color:var(--g1);
-      margin-bottom:14px; display:flex; align-items:center; justify-content:space-between;
-    }
-    .ex-lib-section { margin-top:22px; }
-    .ex-cat-header {
-      display:flex; align-items:center; justify-content:space-between;
-      padding:12px 16px; background:var(--g8); border-radius:10px;
-      cursor:pointer; margin-bottom:6px; user-select:none;
-      transition:background var(--tr);
-    }
-    .ex-cat-header:hover { background:var(--g7); }
-    .cat-left { display:flex; align-items:center; gap:8px; font-weight:700; font-size:.9rem; color:var(--g1); }
-    .cat-arrow { font-size:.75rem; color:var(--g3); transition:transform var(--tr); }
-    .ex-cat-header.open .cat-arrow { transform:rotate(180deg); }
-    .ex-cat-items { display:none; flex-wrap:wrap; gap:7px; padding:4px 0 12px; }
-    .ex-cat-items.open { display:flex; }
-    .ex-chip {
-      padding:8px 14px; border-radius:20px; border:none; cursor:pointer;
-      font-size:.77rem; font-weight:600; background:var(--g8); color:var(--g1);
-      transition:all var(--tr); display:flex; flex-direction:column;
-      align-items:center; gap:2px; text-align:center;
-    }
-    .ex-chip:hover { background:var(--g4); color:#fff; transform:translateY(-1px); }
-    .ec-dur { font-size:.67rem; opacity:.7; }
-    .custom-ex-form {
-      background:#fff; border-radius:var(--radius); padding:20px;
-      margin-top:20px; box-shadow:var(--shadow);
-    }
-    .custom-ex-form h3 { font-size:.95rem; font-weight:700; color:var(--g1); margin-bottom:16px; }
-
     /* ── SECTION TITLE ──────────────────────────────────── */
     .section-title {
       font-size:.8rem; font-weight:700; color:var(--g3);
@@ -441,9 +392,9 @@
       body { background:#fff; }
       .steps-wrap,#pwaBanner,.tabs-header,.day-nav,.daily-actions,
       .more-btn,.nav-btns,.app-header,#bsBackdrop,#bottomSheet,
-      .ex-lib-section,.custom-ex-form,.btn,.chips { display:none !important; }
+      .btn,.chips { display:none !important; }
       .food-tag button { display:none !important; }
-      .card,.meal-card,.ex-card { box-shadow:none; border:1px solid #ddd; }
+      .card,.meal-card { box-shadow:none; border:1px solid #ddd; }
       .tab-panel { display:block !important; }
       .page { display:none !important; }
       #page4.active { display:block !important; }
@@ -474,7 +425,7 @@
 <!-- Header -->
 <header class="app-header">
   <h1>CalcNutri Pro</h1>
-  <p>Plano alimentar e de exercícios personalizado</p>
+  <p>Plano alimentar personalizado</p>
 </header>
 
 <!-- Progress Steps -->
@@ -668,7 +619,6 @@
     <div class="tabs-header">
       <button class="tab-btn active" onclick="switchTab(0)">Resumo</button>
       <button class="tab-btn" onclick="switchTab(1)">Refeições</button>
-      <button class="tab-btn" onclick="switchTab(2)">Exercícios</button>
     </div>
 
     <!-- TAB 0: Resumo -->
@@ -694,44 +644,6 @@
       <div class="daily-total">
         <div class="dt-val" id="dailyTotalKcal">0</div>
         <div class="dt-lbl">kcal registradas — <span id="dailyTotalDay">Seg</span></div>
-      </div>
-    </div>
-
-    <!-- TAB 2: Exercícios -->
-    <div class="tab-panel" id="tab2">
-      <div class="day-nav" id="exDayNav"></div>
-      <div class="ex-day-total">
-        <span>Queima estimada (<span id="exDayLbl">Seg</span>)</span>
-        <span id="exDayBurn">0 kcal</span>
-      </div>
-      <div id="exPlannedWrap"></div>
-      <div class="ex-lib-section">
-        <div class="section-title">Biblioteca de exercícios</div>
-        <div id="exLibWrap"></div>
-      </div>
-      <div class="custom-ex-form">
-        <h3>&#10133; Adicionar exercício personalizado</h3>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Nome do exercício</label>
-            <input type="text" id="cExName" placeholder="Ex: Natação livre">
-          </div>
-          <div class="form-group">
-            <label>Dia da semana</label>
-            <select id="cExDay"></select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Duração</label>
-            <input type="text" id="cExDur" placeholder="Ex: 45 min">
-          </div>
-          <div class="form-group">
-            <label>Calorias estimadas</label>
-            <input type="number" id="cExBurn" placeholder="Ex: 300" min="0">
-          </div>
-        </div>
-        <button class="btn btn-primary" onclick="addCustomEx()">Adicionar Exercício</button>
       </div>
     </div>
 
@@ -838,57 +750,6 @@ const FD = {
   ],
 };
 
-const EX_LIB = [
-  {cat:'Cardio', ico:'🏃', items:[
-    {n:'Corrida leve',dur:'30 min',burn:250},
-    {n:'Corrida moderada',dur:'35 min',burn:350},
-    {n:'Corrida intensa',dur:'30 min',burn:450},
-    {n:'Caminhada rápida',dur:'45 min',burn:280},
-    {n:'Bicicleta outdoor',dur:'45 min',burn:380},
-    {n:'Bicicleta ergométrica',dur:'40 min',burn:320},
-    {n:'Natação',dur:'45 min',burn:420},
-    {n:'Elíptico',dur:'40 min',burn:350},
-    {n:'Pular corda',dur:'20 min',burn:280},
-    {n:'Remo ergométrico',dur:'30 min',burn:300},
-    {n:'Step aeróbico',dur:'40 min',burn:340},
-  ]},
-  {cat:'HIIT', ico:'⚡', items:[
-    {n:'HIIT clássico',dur:'25 min',burn:380},
-    {n:'Tabata',dur:'20 min',burn:300},
-    {n:'CrossFit',dur:'45 min',burn:450},
-    {n:'Circuito funcional',dur:'40 min',burn:380},
-    {n:'Burpees + saltos',dur:'20 min',burn:280},
-    {n:'Sprint intervals',dur:'25 min',burn:350},
-  ]},
-  {cat:'Musculação', ico:'🏋️', items:[
-    {n:'Peito + Tríceps',dur:'60 min',burn:350},
-    {n:'Costas + Bíceps',dur:'60 min',burn:350},
-    {n:'Pernas + Glúteos',dur:'65 min',burn:400},
-    {n:'Ombros + Core',dur:'55 min',burn:300},
-    {n:'Full Body',dur:'55 min',burn:350},
-    {n:'Abdômen + Core',dur:'30 min',burn:180},
-    {n:'Braços (bi+tri)',dur:'40 min',burn:220},
-    {n:'Glúteos focado',dur:'50 min',burn:280},
-  ]},
-  {cat:'Flexibilidade', ico:'🧘', items:[
-    {n:'Yoga flow',dur:'45 min',burn:180},
-    {n:'Pilates',dur:'45 min',burn:180},
-    {n:'Alongamento global',dur:'30 min',burn:100},
-    {n:'Mobilidade articular',dur:'25 min',burn:80},
-    {n:'Tai Chi',dur:'45 min',burn:150},
-  ]},
-  {cat:'Esportes', ico:'⚽', items:[
-    {n:'Futebol',dur:'60 min',burn:520},
-    {n:'Basquete',dur:'60 min',burn:460},
-    {n:'Tênis',dur:'60 min',burn:440},
-    {n:'Vôlei',dur:'60 min',burn:360},
-    {n:'Trilha',dur:'60 min',burn:380},
-    {n:'Dança',dur:'45 min',burn:280},
-    {n:'Surfe',dur:'60 min',burn:380},
-    {n:'Padel',dur:'60 min',burn:420},
-  ]},
-];
-
 /* ─────────────────────────────────────────────────────────
    STATE
 ───────────────────────────────────────────────────────── */
@@ -896,7 +757,6 @@ let curStep   = 1;
 let resultData = {};
 let targetKcal = 0;
 let curDay    = 'seg';
-let curExDay  = 'seg';
 
 // Food log: log[day][mealKey] = [[name, kcal], ...]
 const log = {};
@@ -904,10 +764,6 @@ DAYS.forEach(d => {
   log[d] = {};
   MD.forEach(m => { log[d][m.k] = []; });
 });
-
-// Exercise plan: exPlan[day] = [{n, dur, burn, ico}, ...]
-const exPlan = {};
-DAYS.forEach(d => { exPlan[d] = []; });
 
 // Bottom sheet state
 let currentBSMeal = null;
@@ -1076,14 +932,9 @@ function calc() {
       `;
     });
 
-    // Build day navs + render
+    // Build day nav + render
     buildMealDayNav();
-    buildExDayNav();
     renderMealPlanner();
-    initExPlan(metaV);
-    renderExerciseTab();
-    renderExLib();
-    buildCustomExDaySelect();
     switchTab(0);
     _applyStep(4);
   });
@@ -1287,173 +1138,6 @@ function addFromBS() {
 }
 
 /* ─────────────────────────────────────────────────────────
-   EXERCISE DAY NAV
-───────────────────────────────────────────────────────── */
-function buildExDayNav() {
-  const nav = document.getElementById('exDayNav');
-  nav.innerHTML = '';
-  DAYS.forEach(d => {
-    const btn = document.createElement('button');
-    btn.className = 'day-btn' + (d === curExDay ? ' active' : '');
-    btn.textContent = DAY_LABELS[d];
-    btn.onclick = () => switchExDay(d);
-    nav.appendChild(btn);
-  });
-}
-
-function switchExDay(d) {
-  curExDay = d;
-  document.querySelectorAll('#exDayNav .day-btn').forEach((b, i) => {
-    b.classList.toggle('active', DAYS[i] === d);
-  });
-  renderExerciseTab();
-}
-
-/* ─────────────────────────────────────────────────────────
-   INIT EXERCISE PLAN
-───────────────────────────────────────────────────────── */
-function initExPlan(goal) {
-  DAYS.forEach(d => { exPlan[d] = []; });
-  if (goal === 'perder') {
-    exPlan['seg'] = [{n:'Corrida moderada',   dur:'35 min', burn:'~350kcal', ico:'🏃'}];
-    exPlan['ter'] = [{n:'HIIT clássico',      dur:'25 min', burn:'~380kcal', ico:'⚡'}];
-    exPlan['qua'] = [{n:'Caminhada rápida',   dur:'45 min', burn:'~280kcal', ico:'🏃'},{n:'Yoga flow', dur:'45 min', burn:'~180kcal', ico:'🧘'}];
-    exPlan['qui'] = [{n:'Corrida moderada',   dur:'35 min', burn:'~350kcal', ico:'🏃'}];
-    exPlan['sex'] = [{n:'HIIT clássico',      dur:'25 min', burn:'~380kcal', ico:'⚡'},{n:'Alongamento global', dur:'30 min', burn:'~100kcal', ico:'🧘'}];
-    exPlan['sab'] = [{n:'Bicicleta outdoor',  dur:'45 min', burn:'~380kcal', ico:'🏃'}];
-    exPlan['dom'] = [];
-  } else if (goal === 'ganhar') {
-    exPlan['seg'] = [{n:'Peito + Tríceps',    dur:'60 min', burn:'~350kcal', ico:'🏋️'}];
-    exPlan['ter'] = [{n:'Costas + Bíceps',    dur:'60 min', burn:'~350kcal', ico:'🏋️'}];
-    exPlan['qua'] = [{n:'Pernas + Glúteos',   dur:'65 min', burn:'~400kcal', ico:'🏋️'}];
-    exPlan['qui'] = [{n:'Ombros + Core',      dur:'55 min', burn:'~300kcal', ico:'🏋️'}];
-    exPlan['sex'] = [{n:'Full Body',          dur:'55 min', burn:'~350kcal', ico:'🏋️'}];
-    exPlan['sab'] = [{n:'Abdômen + Core',     dur:'30 min', burn:'~180kcal', ico:'🏋️'}];
-    exPlan['dom'] = [{n:'Mobilidade articular',dur:'25 min',burn:'~80kcal',  ico:'🧘'}];
-  } else {
-    exPlan['seg'] = [{n:'Corrida leve',       dur:'30 min', burn:'~250kcal', ico:'🏃'}];
-    exPlan['ter'] = [{n:'Full Body',          dur:'55 min', burn:'~350kcal', ico:'🏋️'}];
-    exPlan['qua'] = [{n:'Yoga flow',          dur:'45 min', burn:'~180kcal', ico:'🧘'}];
-    exPlan['qui'] = [{n:'Corrida leve',       dur:'30 min', burn:'~250kcal', ico:'🏃'}];
-    exPlan['sex'] = [{n:'Full Body',          dur:'55 min', burn:'~350kcal', ico:'🏋️'}];
-    exPlan['sab'] = [{n:'Pilates',            dur:'45 min', burn:'~180kcal', ico:'🧘'}];
-    exPlan['dom'] = [];
-  }
-}
-
-/* ─────────────────────────────────────────────────────────
-   EXERCISE TAB RENDER
-───────────────────────────────────────────────────────── */
-function parseBurn(b) {
-  if (typeof b === 'number') return b;
-  return parseInt(String(b).replace(/\D/g, '')) || 0;
-}
-
-function renderExerciseTab() {
-  const wrap = document.getElementById('exPlannedWrap');
-  const exs  = exPlan[curExDay];
-  document.getElementById('exDayLbl').textContent  = DAY_LABELS[curExDay];
-  const total = exs.reduce((s, e) => s + parseBurn(e.burn), 0);
-  document.getElementById('exDayBurn').textContent = total + ' kcal';
-
-  if (exs.length === 0) {
-    wrap.innerHTML = '<div class="empty-state">Nenhum exercício planejado para este dia.<br>Adicione um da biblioteca abaixo.</div>';
-    return;
-  }
-  wrap.innerHTML = exs.map((ex, idx) => `
-    <div class="ex-card">
-      <div class="ex-ico">${ex.ico || '💪'}</div>
-      <div class="ex-info">
-        <div class="ex-name">${ex.n}</div>
-        <div class="ex-meta">${ex.dur} · ${ex.burn}</div>
-      </div>
-      <button class="ex-remove" onclick="removeExercise(${idx})" title="Remover">&#10005;</button>
-    </div>
-  `).join('');
-}
-
-function removeExercise(idx) {
-  exPlan[curExDay].splice(idx, 1);
-  renderExerciseTab();
-}
-
-function addExerciseLib(n, dur, burn, ico) {
-  exPlan[curExDay].push({ n, dur, burn: '~' + burn + 'kcal', ico });
-  renderExerciseTab();
-}
-
-/* ─────────────────────────────────────────────────────────
-   EXERCISE LIBRARY RENDER
-───────────────────────────────────────────────────────── */
-function renderExLib() {
-  const wrap = document.getElementById('exLibWrap');
-  wrap.innerHTML = '';
-  EX_LIB.forEach((cat, ci) => {
-    const itemsId = 'exCatItems' + ci;
-
-    const header = document.createElement('div');
-    header.className = 'ex-cat-header';
-    header.innerHTML = `
-      <span class="cat-left">${cat.ico} ${cat.cat}</span>
-      <span class="cat-arrow">&#9660;</span>
-    `;
-    header.onclick = () => {
-      header.classList.toggle('open');
-      document.getElementById(itemsId).classList.toggle('open');
-    };
-
-    const itemsDiv = document.createElement('div');
-    itemsDiv.className = 'ex-cat-items';
-    itemsDiv.id = itemsId;
-
-    cat.items.forEach(item => {
-      const btn = document.createElement('button');
-      btn.className = 'ex-chip';
-      btn.innerHTML = `${cat.ico} ${item.n}<span class="ec-dur">${item.dur} · ~${item.burn}kcal</span>`;
-      btn.onclick = () => addExerciseLib(item.n, item.dur, item.burn, cat.ico);
-      itemsDiv.appendChild(btn);
-    });
-
-    wrap.appendChild(header);
-    wrap.appendChild(itemsDiv);
-  });
-}
-
-/* ─────────────────────────────────────────────────────────
-   CUSTOM EXERCISE
-───────────────────────────────────────────────────────── */
-function buildCustomExDaySelect() {
-  const sel = document.getElementById('cExDay');
-  sel.innerHTML = '';
-  DAYS.forEach(d => {
-    const opt = document.createElement('option');
-    opt.value = d;
-    opt.textContent = DAY_FULL[d];
-    sel.appendChild(opt);
-  });
-  sel.value = curExDay;
-}
-
-function addCustomEx() {
-  const name = document.getElementById('cExName').value.trim();
-  const day  = document.getElementById('cExDay').value;
-  const dur  = document.getElementById('cExDur').value.trim();
-  const burn = +document.getElementById('cExBurn').value;
-
-  if (!name) { alert('Informe o nome do exercício.'); return; }
-  if (!dur)  { alert('Informe a duração.'); return; }
-  if (!burn) { alert('Informe as calorias estimadas.'); return; }
-
-  exPlan[day].push({ n: name, dur, burn: '~' + burn + 'kcal', ico: '💪' });
-  if (day === curExDay) renderExerciseTab();
-
-  document.getElementById('cExName').value = '';
-  document.getElementById('cExDur').value  = '';
-  document.getElementById('cExBurn').value = '';
-  alert('Exercício adicionado em ' + DAY_FULL[day] + '!');
-}
-
-/* ─────────────────────────────────────────────────────────
    PRINT
 ───────────────────────────────────────────────────────── */
 function printPlan() {
@@ -1511,21 +1195,6 @@ function printPlan() {
     if (!hasFoods) html += '<p class="empty">Nenhum alimento registrado.</p>';
   });
 
-  html += '<h2>Plano de Exercícios Semanal</h2>';
-  DAYS.forEach(d => {
-    const exs = exPlan[d];
-    html += `<h3>${DAY_FULL[d]}</h3>`;
-    if (exs.length === 0) {
-      html += '<p class="empty">Descanso / sem exercícios.</p>';
-    } else {
-      html += '<table><tr><th>Exercício</th><th>Duração</th><th>Queima estimada</th></tr>';
-      exs.forEach(e => {
-        html += `<tr><td>${e.ico || ''} ${e.n}</td><td>${e.dur}</td><td>${e.burn}</td></tr>`;
-      });
-      html += '</table>';
-    }
-  });
-
   html += '</body></html>';
 
   const win = window.open('', '_blank');
@@ -1550,10 +1219,8 @@ function resetApp() {
 
     DAYS.forEach(d => {
       MD.forEach(m => { log[d][m.k] = []; });
-      exPlan[d] = [];
     });
     curDay     = 'seg';
-    curExDay   = 'seg';
     targetKcal = 0;
     resultData = {};
 
